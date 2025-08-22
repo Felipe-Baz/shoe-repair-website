@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowLeft, Loader2, CheckCircle, Search } from "lucide-react"
+import { ArrowLeft, Loader2, CheckCircle, Search, Upload, X } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 // Mock clients data
 const mockClients = [
@@ -33,6 +34,7 @@ const serviceTypes = [
 ]
 
 export default function NewOrderPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     clientId: "",
     sneaker: "",
@@ -43,6 +45,20 @@ export default function NewOrderPage() {
     status: "iniciado",
   })
   const [clientSearch, setClientSearch] = useState("")
+  // Fotos do tênis
+  const [photos, setPhotos] = useState<File[]>([])
+  // Manipuladores de upload/remover foto
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const filesArray = Array.from(e.target.files);
+    // Limita a 5 fotos e 5MB cada
+    const validFiles = filesArray.filter(f => f.size <= 5 * 1024 * 1024).slice(0, 5 - photos.length);
+    setPhotos(prev => [...prev, ...validFiles].slice(0, 5));
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index));
+  };
   const [isLoading, setIsLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -109,7 +125,8 @@ export default function NewOrderPage() {
       return
     }
 
-    setIsLoading(true)
+
+  setIsLoading(true)
 
     // Mock API call
     setTimeout(() => {
@@ -119,25 +136,16 @@ export default function NewOrderPage() {
         clientName: selectedClient?.name,
         clientCpf: selectedClient?.cpf,
         createdDate: new Date().toISOString().split("T")[0],
+        photos,
       }
       console.log("Pedido criado:", orderData)
       setSuccess(true)
       setIsLoading(false)
 
-      // Reset form after success
+      // Redireciona para /pedidos após 1 segundo
       setTimeout(() => {
-        setFormData({
-          clientId: "",
-          sneaker: "",
-          serviceType: "",
-          description: "",
-          price: "",
-          expectedDate: "",
-          status: "iniciado",
-        })
-        setClientSearch("")
-        setSuccess(false)
-      }, 2000)
+        router.push("/pedidos")
+      }, 1000)
     }, 1500)
   }
 
@@ -259,6 +267,7 @@ export default function NewOrderPage() {
                 </div>
               </div>
 
+
               <div className="space-y-2">
                 <Label htmlFor="description">Descrição do Serviço *</Label>
                 <Textarea
@@ -271,6 +280,50 @@ export default function NewOrderPage() {
                   className={errors.description ? "border-destructive" : ""}
                 />
                 {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
+              </div>
+
+              {/* Photo Upload */}
+              <div className="space-y-4">
+                <Label>Fotos do Tênis</Label>
+                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                    id="photo-upload"
+                  />
+                  <label htmlFor="photo-upload" className="cursor-pointer">
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Clique para adicionar fotos (máximo 5 fotos, até 5MB cada)
+                    </p>
+                  </label>
+                </div>
+
+                {photos.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {photos.map((photo, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={URL.createObjectURL(photo) || "/placeholder.svg"}
+                          alt={`Foto ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-2 right-2 h-6 w-6 p-0"
+                          onClick={() => removePhoto(index)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

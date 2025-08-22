@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, ArrowRight, CheckCircle, Clock, Play, Eye } from "lucide-react"
 import Link from "next/link"
+import { CardDetalhesPedido } from "@/components/CardDetalhesPedido"
 
 // Mock data for orders with status control
 const initialOrders = [
@@ -145,6 +146,10 @@ const getPreviousStatus = (currentStatus: string) => {
 export default function StatusControlPage() {
   const [orders, setOrders] = useState(initialOrders)
   const [successMessage, setSuccessMessage] = useState("")
+  const [draggedOrderId, setDraggedOrderId] = useState<string | null>(null);
+
+  // Estado para controlar o modal de detalhes
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
   const updateOrderStatus = (orderId: string, newStatus: string) => {
     setOrders((prevOrders) =>
@@ -169,6 +174,21 @@ export default function StatusControlPage() {
     setSuccessMessage(`Pedido #${orderId} atualizado para ${getStatusInfo(newStatus).label}`)
     setTimeout(() => setSuccessMessage(""), 3000)
   }
+
+  const handleDragStart = (orderId: string) => {
+    setDraggedOrderId(orderId);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (status: string) => {
+    if (draggedOrderId) {
+      updateOrderStatus(draggedOrderId, status);
+      setDraggedOrderId(null);
+    }
+  };
 
   const ordersByStatus = {
     iniciado: orders.filter((order) => order.status === "iniciado"),
@@ -253,7 +273,13 @@ export default function StatusControlPage() {
             const StatusIcon = statusInfo.icon
 
             return (
-              <Card key={status} className={`${statusInfo.bgColor} border-2`}>
+              <Card
+                key={status}
+                className={`${statusInfo.bgColor} border-2`}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(status)}
+                style={{ minHeight: 300, opacity: draggedOrderId ? 0.97 : 1, borderStyle: draggedOrderId ? "dashed" : undefined }}
+              >
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <StatusIcon className="w-5 h-5 mr-2" />
@@ -269,7 +295,13 @@ export default function StatusControlPage() {
                     </div>
                   ) : (
                     statusOrders.map((order) => (
-                      <Card key={order.id} className="bg-background border shadow-sm">
+                      <Card
+                        key={order.id}
+                        className={`bg-background border shadow-sm ${draggedOrderId === order.id ? "opacity-60" : ""}`}
+                        draggable
+                        onDragStart={() => handleDragStart(order.id)}
+                        onDragEnd={() => setDraggedOrderId(null)}
+                      >
                         <CardContent className="p-4">
                           <div className="space-y-3">
                             <div className="flex justify-between items-start">
@@ -319,7 +351,12 @@ export default function StatusControlPage() {
                                 </Button>
                               )}
 
-                              <Button variant="outline" size="sm" className="flex-1 bg-transparent">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 bg-transparent"
+                                onClick={() => setSelectedOrder(order)}
+                              >
                                 <Eye className="w-3 h-3 mr-1" />
                                 Ver
                               </Button>
@@ -376,6 +413,13 @@ export default function StatusControlPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de Detalhes do Pedido */}
+      <CardDetalhesPedido
+        open={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        pedido={selectedOrder}
+      />
     </div>
   )
 }

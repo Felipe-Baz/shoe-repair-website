@@ -148,8 +148,8 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Quick Actions */} 
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -192,6 +192,24 @@ export default function DashboardPage() {
               <Link href="/consultas">
                 <Button className="w-full bg-transparent" variant="outline">
                   Fazer Consulta
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Novo Card para Status */}
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <CheckCircle className="w-5 h-5 mr-2 text-accent" />
+                Status dos Pedidos
+              </CardTitle>
+              <CardDescription>Gerencie o status dos pedidos</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/status">
+                <Button className="w-full bg-transparent" variant="outline">
+                  Ver Status
                 </Button>
               </Link>
             </CardContent>

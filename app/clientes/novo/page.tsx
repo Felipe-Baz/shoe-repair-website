@@ -11,13 +11,22 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Loader2, CheckCircle } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export default function NewClientPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
     cpf: "",
     phone: "",
     email: "",
+    cep: "",
+  logradouro: "",
+  numero: "",
+  complemento: "",
+    bairro: "",
+    cidade: "",
+    estado: "",
     address: "",
     notes: "",
   })
@@ -31,6 +40,30 @@ export default function NewClientPage() {
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }))
+    }
+  }
+
+  // Busca CEP na API ViaCEP
+  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cep = e.target.value.replace(/\D/g, "").slice(0, 8)
+    setFormData((prev) => ({ ...prev, cep }))
+    if (cep.length === 8) {
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+        const data = await res.json()
+        if (!data.erro) {
+          setFormData((prev) => ({
+            ...prev,
+            logradouro: data.logradouro || "",
+            bairro: data.bairro || "",
+            cidade: data.localidade || "",
+            estado: data.uf || "",
+            address: `${data.logradouro || ''}, ${data.bairro || ''}, ${data.localidade || ''} - ${data.uf || ''}`.replace(/^, |, ,/g, '')
+          }))
+        }
+      } catch (err) {
+        // erro ao buscar cep
+      }
     }
   }
 
@@ -57,8 +90,25 @@ export default function NewClientPage() {
       newErrors.email = "Email deve ter um formato válido"
     }
 
-    if (!formData.address.trim()) {
-      newErrors.address = "Endereço é obrigatório"
+    if (!formData.cep.trim()) {
+      newErrors.cep = "CEP é obrigatório"
+    } else if (!/^\d{8}$/.test(formData.cep)) {
+      newErrors.cep = "CEP deve ter 8 dígitos"
+    }
+    if (!formData.logradouro.trim()) {
+      newErrors.logradouro = "Logradouro é obrigatório"
+    }
+    if (!formData.numero.trim()) {
+      newErrors.numero = "Número é obrigatório"
+    }
+    if (!formData.bairro.trim()) {
+      newErrors.bairro = "Bairro é obrigatório"
+    }
+    if (!formData.cidade.trim()) {
+      newErrors.cidade = "Cidade é obrigatória"
+    }
+    if (!formData.estado.trim()) {
+      newErrors.estado = "Estado é obrigatório"
     }
 
     setErrors(newErrors)
@@ -80,18 +130,10 @@ export default function NewClientPage() {
       setSuccess(true)
       setIsLoading(false)
 
-      // Reset form after success
+      // Redireciona para /clientes após 1 segundo
       setTimeout(() => {
-        setFormData({
-          name: "",
-          cpf: "",
-          phone: "",
-          email: "",
-          address: "",
-          notes: "",
-        })
-        setSuccess(false)
-      }, 2000)
+        router.push("/clientes")
+      }, 1000)
     }, 1500)
   }
 
@@ -208,17 +250,132 @@ export default function NewClientPage() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cep">CEP *</Label>
+                  <Input
+                    id="cep"
+                    name="cep"
+                    value={formData.cep}
+                    onChange={handleCepChange}
+                    placeholder="00000000"
+                    maxLength={8}
+                    className={errors.cep ? "border-destructive" : ""}
+                  />
+                  {errors.cep && <p className="text-sm text-destructive">{errors.cep}</p>}
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="logradouro">Logradouro *</Label>
+                  <Input
+                    id="logradouro"
+                    name="logradouro"
+                    value={formData.logradouro}
+                    onChange={handleInputChange}
+                    placeholder="Rua Exemplo"
+                    className={errors.logradouro ? "border-destructive" : ""}
+                  />
+                  {errors.logradouro && <p className="text-sm text-destructive">{errors.logradouro}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="numero">Número *</Label>
+                  <Input
+                    id="numero"
+                    name="numero"
+                    value={formData.numero}
+                    onChange={handleInputChange}
+                    placeholder="Nº"
+                    className={errors.numero ? "border-destructive" : ""}
+                  />
+                  {errors.numero && <p className="text-sm text-destructive">{errors.numero}</p>}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="bairro">Bairro *</Label>
+                  <Input
+                    id="bairro"
+                    name="bairro"
+                    value={formData.bairro}
+                    onChange={handleInputChange}
+                    placeholder="Bairro"
+                    className={errors.bairro ? "border-destructive" : ""}
+                  />
+                  {errors.bairro && <p className="text-sm text-destructive">{errors.bairro}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cidade">Cidade *</Label>
+                  <Input
+                    id="cidade"
+                    name="cidade"
+                    value={formData.cidade}
+                    onChange={handleInputChange}
+                    placeholder="Cidade"
+                    className={errors.cidade ? "border-destructive" : ""}
+                  />
+                  {errors.cidade && <p className="text-sm text-destructive">{errors.cidade}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="estado">Estado *</Label>
+                  <Input
+                    id="estado"
+                    name="estado"
+                    value={formData.estado}
+                    onChange={handleInputChange}
+                    placeholder="UF"
+                    maxLength={2}
+                    className={errors.estado ? "border-destructive" : ""}
+                  />
+                  {errors.estado && <p className="text-sm text-destructive">{errors.estado}</p>}
+                </div>
+              </div>
               <div className="space-y-2">
-                <Label htmlFor="address">Endereço Completo *</Label>
+                <Label htmlFor="complemento">Complemento</Label>
                 <Input
-                  id="address"
-                  name="address"
-                  value={formData.address}
+                  id="complemento"
+                  name="complemento"
+                  value={formData.complemento}
                   onChange={handleInputChange}
-                  placeholder="Rua, número, bairro, cidade, estado"
-                  className={errors.address ? "border-destructive" : ""}
+                  placeholder="Apto, bloco, etc. (opcional)"
                 />
-                {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="bairro">Bairro *</Label>
+                  <Input
+                    id="bairro"
+                    name="bairro"
+                    value={formData.bairro}
+                    onChange={handleInputChange}
+                    placeholder="Bairro"
+                    className={errors.bairro ? "border-destructive" : ""}
+                  />
+                  {errors.bairro && <p className="text-sm text-destructive">{errors.bairro}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cidade">Cidade *</Label>
+                  <Input
+                    id="cidade"
+                    name="cidade"
+                    value={formData.cidade}
+                    onChange={handleInputChange}
+                    placeholder="Cidade"
+                    className={errors.cidade ? "border-destructive" : ""}
+                  />
+                  {errors.cidade && <p className="text-sm text-destructive">{errors.cidade}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="estado">Estado *</Label>
+                  <Input
+                    id="estado"
+                    name="estado"
+                    value={formData.estado}
+                    onChange={handleInputChange}
+                    placeholder="UF"
+                    maxLength={2}
+                    className={errors.estado ? "border-destructive" : ""}
+                  />
+                  {errors.estado && <p className="text-sm text-destructive">{errors.estado}</p>}
+                </div>
               </div>
 
               <div className="space-y-2">
