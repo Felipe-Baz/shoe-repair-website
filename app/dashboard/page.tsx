@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Users, Package, Clock, CheckCircle, Plus, Search, Settings, LogOut } from "lucide-react"
+import Cookies from "js-cookie"
 import Link from "next/link"
 
 // Mock data for dashboard
@@ -70,6 +71,10 @@ const getStatusBadge = (status: string) => {
 }
 
 export default function DashboardPage() {
+  const handleLogout = () => {
+    Cookies.remove("token")
+    window.location.href = "/"
+  }
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -85,7 +90,7 @@ export default function DashboardPage() {
                 <Settings className="w-4 h-4 mr-2" />
                 Configurações
               </Button>
-              <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary/80">
+              <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary/80" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" />
                 Sair
               </Button>
