@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import Cookies from "js-cookie"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -24,7 +25,8 @@ export default function LoginPage() {
     // Mock authentication - simulate API call
     setTimeout(() => {
       if (email === "funcionario@solerevive.com" && password === "123456") {
-        // Redirect to dashboard (will be implemented in next task)
+        // Salva um token JWT fake no cookie
+        Cookies.set("token", "fake-jwt-token", { expires: 1 })
         window.location.href = "/dashboard"
       } else {
         setError("Email ou senha incorretos")
