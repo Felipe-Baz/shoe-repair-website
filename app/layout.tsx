@@ -16,9 +16,8 @@ const sourceSans = Source_Sans_3({
 })
 
 export const metadata: Metadata = {
-  title: "SoleRevive - Sistema de Gestão",
-  description: "Sistema de gestão para loja de reforma de tênis",
-  generator: "v0.app",
+  title: `${process.env.NEXT_PUBLIC_APP_NAME} - Sistema de Gestão`,
+  description: "Sistema de gestão para loja de reforma de tênis"
 }
 
 export default function RootLayout({

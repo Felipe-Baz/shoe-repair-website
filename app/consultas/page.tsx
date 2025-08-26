@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -132,24 +133,42 @@ const getStatusBadge = (status: string) => {
 }
 
 export default function ConsultasPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [searchType, setSearchType] = useState("nome")
-  const [dateFrom, setDateFrom] = useState("")
-  const [dateTo, setDateTo] = useState("")
-  const [statusFilter, setStatusFilter] = useState("todos")
-  const [hasSearched, setHasSearched] = useState(false)
+  const searchParams = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchType, setSearchType] = useState("nome");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos");
+  const [hasSearched, setHasSearched] = useState(false);
+  const [tab, setTab] = useState("clientes");
+
+  useEffect(() => {
+    const urlSearchType = searchParams.get("searchType");
+    const urlSearchTerm = searchParams.get("searchTerm");
+    const urlTab = searchParams.get("tab");
+    if (urlSearchType && urlSearchTerm) {
+      setSearchType(urlSearchType);
+      setSearchTerm(urlSearchTerm);
+      setHasSearched(true);
+    }
+    if (urlTab === "pedidos") {
+      setTab("pedidos");
+    } else {
+      setTab("clientes");
+    }
+  }, [searchParams]);
 
   const handleSearch = () => {
-    setHasSearched(true)
-  }
+    setHasSearched(true);
+  };
 
   const clearSearch = () => {
-    setSearchTerm("")
-    setDateFrom("")
-    setDateTo("")
-    setStatusFilter("todos")
-    setHasSearched(false)
-  }
+    setSearchTerm("");
+    setDateFrom("");
+    setDateTo("");
+    setStatusFilter("todos");
+    setHasSearched(false);
+  };
 
   // Filter clients based on search criteria
   const filteredClients = hasSearched
@@ -313,7 +332,7 @@ export default function ConsultasPage() {
 
         {/* Results */}
         {hasSearched && (
-          <Tabs defaultValue="clientes" className="space-y-4">
+          <Tabs value={tab} onValueChange={setTab} className="space-y-4">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="clientes" className="flex items-center">
                 <User className="w-4 h-4 mr-2" />

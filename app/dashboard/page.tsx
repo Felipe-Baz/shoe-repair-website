@@ -2,7 +2,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, Package, Clock, CheckCircle, Plus, Search, Settings, LogOut } from "lucide-react"
+import { Users, Package, Clock, CheckCircle, Search, LogOut } from "lucide-react"
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME
 import Cookies from "js-cookie"
 import Link from "next/link"
 
@@ -82,14 +83,10 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-bold font-serif">SoleRevive</h1>
+              <h1 className="text-xl font-bold font-serif">{APP_NAME}</h1>
               <span className="text-sm opacity-75">Sistema de Gestão</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary/80">
-                <Settings className="w-4 h-4 mr-2" />
-                Configurações
-              </Button>
               <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary/80" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" />
                 Sair
@@ -153,20 +150,26 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Quick Actions */} 
+        {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {/* Card único para clientes */}
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Plus className="w-5 h-5 mr-2 text-accent" />
-                Novo Cliente
+                <Users className="w-5 h-5 mr-2 text-accent" />
+                Clientes
               </CardTitle>
-              <CardDescription>Cadastrar um novo cliente no sistema</CardDescription>
+              <CardDescription>Visualize ou cadastre clientes</CardDescription>
             </CardHeader>
             <CardContent>
-              <Link href="/clientes/novo">
-                <Button className="w-full">Cadastrar Cliente</Button>
-              </Link>
+              <div className="flex flex-col gap-2">
+                <Link href="/clientes">
+                  <Button className="w-full">Ver Todos Clientes</Button>
+                </Link>
+                <Link href="/clientes/novo">
+                  <Button className="w-full" variant="secondary">Cadastrar Cliente</Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
 
@@ -179,9 +182,11 @@ export default function DashboardPage() {
               <CardDescription>Criar um novo pedido de reforma</CardDescription>
             </CardHeader>
             <CardContent>
-              <Link href="/pedidos/novo">
-                <Button className="w-full">Criar Pedido</Button>
-              </Link>
+              <div className="justify-center mt-5">
+                <Link href="/pedidos/novo">
+                  <Button className="w-full">Criar Pedido</Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
 
@@ -194,11 +199,13 @@ export default function DashboardPage() {
               <CardDescription>Buscar clientes e pedidos</CardDescription>
             </CardHeader>
             <CardContent>
-              <Link href="/consultas">
-                <Button className="w-full bg-transparent" variant="outline">
-                  Fazer Consulta
-                </Button>
-              </Link>
+              <div className="justify-center mt-5">
+                <Link href="/consultas">
+                  <Button className="w-full bg-transparent" variant="outline">
+                    Fazer Consulta
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
 
@@ -212,11 +219,13 @@ export default function DashboardPage() {
               <CardDescription>Gerencie o status dos pedidos</CardDescription>
             </CardHeader>
             <CardContent>
-              <Link href="/status">
-                <Button className="w-full bg-transparent" variant="outline">
-                  Ver Status
-                </Button>
-              </Link>
+              <div className="justify-center mt-5">
+                <Link href="/status">
+                  <Button className="w-full bg-transparent" variant="outline">
+                    Ver Status
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </div>

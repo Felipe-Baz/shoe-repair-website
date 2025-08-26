@@ -24,7 +24,7 @@ export default function LoginPage() {
 
     // Mock authentication - simulate API call
     setTimeout(() => {
-      if (email === "funcionario@solerevive.com" && password === "123456") {
+      if (email === "funcionario@email.com" && password === "123456") {
         // Salva um token JWT fake no cookie
         Cookies.set("token", "fake-jwt-token", { expires: 1 })
         window.location.href = "/dashboard"
@@ -46,7 +46,7 @@ export default function LoginPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground font-serif">SoleRevive</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground font-serif">{process.env.NEXT_PUBLIC_APP_NAME}</h1>
             <p className="text-muted-foreground">Sistema de Gestão para Reforma de Tênis</p>
           </div>
         </div>
@@ -64,7 +64,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="funcionario@solerevive.com"
+                  placeholder="funcionario@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -110,7 +110,7 @@ export default function LoginPage() {
               </p>
               <div className="text-sm space-y-1">
                 <p>
-                  <strong>Email:</strong> funcionario@solerevive.com
+                  <strong>Email:</strong> funcionario@email.com
                 </p>
                 <p>
                   <strong>Senha:</strong> 123456
@@ -122,7 +122,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="text-center text-sm text-muted-foreground">
-          <p>© 2024 SoleRevive. Todos os direitos reservados.</p>
+          <p>© 2025 {process.env.NEXT_PUBLIC_APP_NAME}. Todos os direitos reservados.</p>
         </div>
       </div>
     </div>

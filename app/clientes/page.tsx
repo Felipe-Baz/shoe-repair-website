@@ -160,7 +160,13 @@ export default function ClientsPage() {
                           <p className="text-xs text-muted-foreground">Último: {client.lastOrder}</p>
                         </div>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              window.location.href = `/consultas?searchType=nome&searchTerm=${encodeURIComponent(client.name)}&tab=pedidos`
+                            }}
+                          >
                             Ver Pedidos
                           </Button>
                           <Button variant="outline" size="sm">
