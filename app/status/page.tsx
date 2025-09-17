@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -147,9 +147,11 @@ export default function StatusControlPage() {
   const [orders, setOrders] = useState(initialOrders)
   const [successMessage, setSuccessMessage] = useState("")
   const [draggedOrderId, setDraggedOrderId] = useState<string | null>(null);
-
-  // Estado para controlar o modal de detalhes
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+
+  // Novos estados para busca rápida
+  const [inputValue, setInputValue] = useState("")
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const updateOrderStatus = (orderId: string, newStatus: string) => {
     setOrders((prevOrders) =>
@@ -190,6 +192,36 @@ export default function StatusControlPage() {
     }
   };
 
+  // Função para avançar pedido por número do pedido ou CPF do cliente
+  const handleQuickAdvance = () => {
+    const trimmed = inputValue.trim()
+    if (!trimmed) return
+
+    // Busca por número do pedido
+    let foundOrder = orders.find(o => o.id === trimmed)
+    // Se não achou, busca por CPF do cliente
+    if (!foundOrder) {
+      foundOrder = orders.find(o => o.clientCpf.replace(/\D/g, "") === trimmed.replace(/\D/g, ""))
+    }
+
+    if (foundOrder) {
+      const nextStatus = getNextStatus(foundOrder.status)
+      if (nextStatus) {
+        updateOrderStatus(foundOrder.id, nextStatus)
+        setSuccessMessage(`Pedido #${foundOrder.id} avançado para ${getStatusInfo(nextStatus).label}`)
+        setTimeout(() => setSuccessMessage(""), 3000)
+      } else {
+        setSuccessMessage(`Pedido #${foundOrder.id} já está no status final`)
+        setTimeout(() => setSuccessMessage(""), 3000)
+      }
+    } else {
+      setSuccessMessage("Pedido ou cliente não encontrado")
+      setTimeout(() => setSuccessMessage(""), 3000)
+    }
+    setInputValue("")
+    inputRef.current?.focus()
+  }
+
   const ordersByStatus = {
     iniciado: orders.filter((order) => order.status === "iniciado"),
     "em-processamento": orders.filter((order) => order.status === "em-processamento"),
@@ -198,22 +230,50 @@ export default function StatusControlPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard">
-                <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary/80">
+      {/* Novo Header visual para a página de status */}
+      <div className="w-full bg-primary text-primary-foreground shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex items-center gap-2 mb-2 md:mb-0">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary/80">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Voltar
                 </Button>
-              </Link>
-              <h1 className="text-xl font-bold font-serif">Controle de Status</h1>
-            </div>
+            </Link>
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold font-serif tracking-tight">Controle de Status dos Pedidos</h1>
+            <p className="text-sm text-primary-foreground/80 mt-1">
+              Acompanhe e avance os pedidos de clientes facilmente pelo status.
+            </p>
           </div>
         </div>
-      </header>
+      </div>
+
+      {/* Sessão de avanço rápido */}
+      <div className="w-full bg-muted/60 border-b py-4">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col items-center">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 w-full">
+            <label htmlFor="quick-advance" className="font-medium text-foreground">
+              Avançar pedido rapidamente:
+            </label>
+            <input
+              ref={inputRef}
+              id="quick-advance"
+              type="text"
+              placeholder="Digite o número do pedido ou CPF do cliente"
+              className="border rounded px-3 py-2 w-full md:w-[400px] lg:w-[500px] transition-all"
+              value={inputValue}
+              onChange={e => setInputValue(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleQuickAdvance() }}
+            />
+            <Button onClick={handleQuickAdvance} className="w-full md:w-auto">
+              Avançar Pedido
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Success Message */}

@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import Cookies from "js-cookie"
+import { loginService } from "@/lib/apiService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -21,18 +21,14 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
     setError("")
-
-    // Mock authentication - simulate API call
-    setTimeout(() => {
-      if (email === "funcionario@email.com" && password === "123456") {
-        // Salva um token JWT fake no cookie
-        Cookies.set("token", "fake-jwt-token", { expires: 1 })
-        window.location.href = "/dashboard"
-      } else {
-        setError("Email ou senha incorretos")
-      }
+    try {
+      await loginService(email, password)
+      window.location.href = "/dashboard"
+    } catch (err: any) {
+      setError(err.message || "Erro ao autenticar")
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   return (
