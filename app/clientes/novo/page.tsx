@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Loader2, CheckCircle } from "lucide-react"
 import Link from "next/link"
+
+import { createClienteService } from "@/lib/apiService"
 import { useRouter } from "next/navigation"
 
 export default function NewClientPage() {
@@ -116,25 +118,38 @@ export default function NewClientPage() {
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!validateForm()) {
-      return
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
+    setErrors({});
+    setSuccess(false);
 
-    // Mock API call
-    setTimeout(() => {
-      console.log("Cliente cadastrado:", formData)
-      setSuccess(true)
-      setIsLoading(false)
-
-      // Redireciona para /clientes após 1 segundo
-      setTimeout(() => {
-        router.push("/clientes")
-      }, 1000)
-    }, 1500)
+    try {
+      await createClienteService({
+        nomeCompleto: formData.name,
+        cpf: formData.cpf.replace(/\D/g, ""),
+        telefone: formData.phone.replace(/\D/g, ""),
+        email: formData.email,
+        cep: formData.cep,
+        logradouro: formData.logradouro,
+        numero: formData.numero,
+        bairro: formData.bairro,
+        cidade: formData.cidade,
+        estado: formData.estado,
+        complemento: formData.complemento,
+        observacoes: formData.notes,
+      });
+      setSuccess(true);
+      setIsLoading(false);
+      router.push("/clientes");
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrors({ api: err.message || "Erro ao cadastrar cliente" });
+    }
   }
 
   const formatCPF = (value: string) => {

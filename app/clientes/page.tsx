@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,61 +8,42 @@ import { Badge } from "@/components/ui/badge"
 import { Search, Plus, Phone, Mail, MapPin, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
-// Mock data for clients
-const mockClients = [
-  {
-    id: "1",
-    name: "João Silva",
-    cpf: "123.456.789-00",
-    phone: "(11) 99999-9999",
-    email: "joao@email.com",
-    address: "Rua das Flores, 123 - São Paulo, SP",
-    totalOrders: 5,
-    lastOrder: "2024-01-15",
-  },
-  {
-    id: "2",
-    name: "Maria Santos",
-    cpf: "987.654.321-00",
-    phone: "(11) 88888-8888",
-    email: "maria@email.com",
-    address: "Av. Paulista, 456 - São Paulo, SP",
-    totalOrders: 3,
-    lastOrder: "2024-01-14",
-  },
-  {
-    id: "3",
-    name: "Pedro Costa",
-    cpf: "456.789.123-00",
-    phone: "(11) 77777-7777",
-    email: "pedro@email.com",
-    address: "Rua Augusta, 789 - São Paulo, SP",
-    totalOrders: 8,
-    lastOrder: "2024-01-13",
-  },
-  {
-    id: "4",
-    name: "Ana Oliveira",
-    cpf: "321.654.987-00",
-    phone: "(11) 66666-6666",
-    email: "ana@email.com",
-    address: "Rua Oscar Freire, 321 - São Paulo, SP",
-    totalOrders: 2,
-    lastOrder: "2024-01-12",
-  },
-]
+import { getClientesService } from "@/lib/apiService"
 
 export default function ClientsPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [clients] = useState(mockClients)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [clients, setClients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchClients() {
+      try {
+        const data = await getClientesService();
+        setClients(data);
+      } catch (err: any) {
+        setError("Erro ao buscar clientes");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchClients();
+  }, []);
 
   const filteredClients = clients.filter(
     (client) =>
-      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.cpf.includes(searchTerm) ||
-      client.phone.includes(searchTerm) ||
-      client.email.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+      client.nomeCompleto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.cpf?.includes(searchTerm) ||
+      client.telefone?.includes(searchTerm) ||
+      client.email?.toLowerCase().includes(searchTerm),
+  );
+
+  if (loading) {
+    return <div className="p-8 text-center">Carregando clientes...</div>;
+  }
+  if (error) {
+    return <div className="p-8 text-center text-red-500">{error}</div>;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -126,45 +107,50 @@ export default function ClientsPage() {
             </Card>
           ) : (
             <div className="grid gap-4">
-              {filteredClients.map((client) => (
-                <Card key={client.id} className="hover:shadow-md transition-shadow">
+              {filteredClients.map((client, idx) => (
+                <Card key={client.id || idx} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-4 mb-4">
                           <div>
-                            <h3 className="text-lg font-semibold">{client.name}</h3>
+                            <h3 className="text-lg font-semibold">{client.nomeCompleto}</h3>
                             <p className="text-sm text-muted-foreground">CPF: {client.cpf}</p>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                           <div className="flex items-center gap-2">
                             <Phone className="w-4 h-4 text-muted-foreground" />
-                            <span>{client.phone}</span>
+                            <span>{client.telefone}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Mail className="w-4 h-4 text-muted-foreground" />
                             <span>{client.email}</span>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 col-span-2">
                             <MapPin className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">{client.address}</span>
+                            <span className="truncate">
+                              {client.logradouro}, {client.numero} - {client.bairro}, {client.cidade} - {client.estado} {client.cep}
+                              {client.complemento ? `, ${client.complemento}` : ""}
+                            </span>
                           </div>
+                          {client.observacoes && (
+                            <div className="col-span-2 text-xs text-muted-foreground italic">Obs: {client.observacoes}</div>
+                          )}
                         </div>
                       </div>
 
                       <div className="text-right space-y-2">
                         <div>
-                          <p className="text-sm font-medium">{client.totalOrders} pedidos</p>
-                          <p className="text-xs text-muted-foreground">Último: {client.lastOrder}</p>
+                          {/* Se quiser exibir pedidos, adapte conforme resposta da API */}
                         </div>
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              window.location.href = `/consultas?searchType=nome&searchTerm=${encodeURIComponent(client.name)}&tab=pedidos`
+                              window.location.href = `/consultas?searchType=nome&searchTerm=${encodeURIComponent(client.nomeCompleto)}&tab=pedidos`
                             }}
                           >
                             Ver Pedidos

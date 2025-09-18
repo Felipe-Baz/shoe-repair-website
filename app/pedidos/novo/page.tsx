@@ -12,15 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Loader2, CheckCircle, Search, Upload, X } from "lucide-react"
 import Link from "next/link"
+import { createPedidoService, getClientesService } from "@/lib/apiService"
 import { useRouter } from "next/navigation"
 
-// Mock clients data
-const mockClients = [
-  { id: "1", name: "João Silva", cpf: "123.456.789-00", phone: "(11) 99999-9999" },
-  { id: "2", name: "Maria Santos", cpf: "987.654.321-00", phone: "(11) 88888-8888" },
-  { id: "3", name: "Pedro Costa", cpf: "456.789.123-00", phone: "(11) 77777-7777" },
-  { id: "4", name: "Ana Oliveira", cpf: "321.654.987-00", phone: "(11) 66666-6666" },
-]
+// Busca clientes reais da API
 
 const serviceTypes = [
   "Limpeza Simples",
@@ -32,6 +27,8 @@ const serviceTypes = [
   "Troca de Sola",
   "Costura",
 ]
+
+import { useEffect } from "react"
 
 export default function NewOrderPage() {
   const router = useRouter();
@@ -45,6 +42,23 @@ export default function NewOrderPage() {
     status: "iniciado",
   })
   const [clientSearch, setClientSearch] = useState("")
+  const [clients, setClients] = useState<any[]>([]);
+  const [loadingClients, setLoadingClients] = useState(true);
+
+  useEffect(() => {
+    async function fetchClients() {
+      try {
+        const data = await getClientesService();
+        setClients(data);
+      } catch (err) {
+        // erro ao buscar clientes
+      } finally {
+        setLoadingClients(false);
+      }
+    }
+    fetchClients();
+  }, []);
+  
   // Fotos do tênis
   const [photos, setPhotos] = useState<File[]>([])
   // Manipuladores de upload/remover foto
@@ -63,11 +77,13 @@ export default function NewOrderPage() {
   const [success, setSuccess] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const filteredClients = mockClients.filter(
-    (client) => client.name.toLowerCase().includes(clientSearch.toLowerCase()) || client.cpf.includes(clientSearch),
-  )
+  const filteredClients = clients.filter(
+    (client: any) =>
+      (client.nomeCompleto?.toLowerCase() || "").includes(clientSearch.toLowerCase()) ||
+      (client.cpf || "").includes(clientSearch)
+  );
 
-  const selectedClient = mockClients.find((client) => client.id === formData.clientId)
+  const selectedClient = clients.find((client: any) => client.id === formData.clientId);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -119,34 +135,40 @@ export default function NewOrderPage() {
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!validateForm()) {
-      return
+      return;
     }
 
+    setIsLoading(true);
+    setErrors({});
+    setSuccess(false);
 
-  setIsLoading(true)
+    try {
+      // Simulação de upload: converte File[] para array de URLs (mock)
+      // Em produção, faça upload real e obtenha as URLs
+      const fotosUrls = photos.map((file) => URL.createObjectURL(file));
 
-    // Mock API call
-    setTimeout(() => {
-      const orderData = {
-        ...formData,
-        id: String(Date.now()).slice(-3),
-        clientName: selectedClient?.name,
-        clientCpf: selectedClient?.cpf,
-        createdDate: new Date().toISOString().split("T")[0],
-        photos,
-      }
-      console.log("Pedido criado:", orderData)
-      setSuccess(true)
-      setIsLoading(false)
-
-      // Redireciona para /pedidos após 1 segundo
+      await createPedidoService({
+        clienteId: formData.clientId,
+        modeloTenis: formData.sneaker,
+        tipoServico: formData.serviceType,
+        descricaoServicos: formData.description,
+        fotos: fotosUrls,
+        preco: Number(formData.price),
+        dataPrevistaEntrega: formData.expectedDate,
+        status: formData.status,
+      });
+      setSuccess(true);
+      setIsLoading(false);
       setTimeout(() => {
-        router.push("/pedidos")
-      }, 1000)
-    }, 1500)
+        router.push("/pedidos");
+      }, 1000);
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrors({ api: err.message || "Erro ao criar pedido" });
+    }
   }
 
   return (
