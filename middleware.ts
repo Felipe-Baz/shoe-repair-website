@@ -10,8 +10,8 @@ export function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get('token')?.value;
-  // Verificação simples do token fake
-  if (token !== 'fake-jwt-token') {
+  // Verifica se existe um token (JWT)
+  if (!token) {
     const loginUrl = new URL('/', request.url);
     return NextResponse.redirect(loginUrl);
   }
