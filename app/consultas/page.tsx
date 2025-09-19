@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getClientesService, getOrdersService } from "@/lib/apiService"
+import { getClientesService, getOrdersStatusService } from "@/lib/apiService"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -60,7 +60,7 @@ export default function ConsultasPage() {
     try {
       const [clientesData, pedidosData] = await Promise.all([
         getClientesService(),
-        getOrdersService(),
+        getOrdersStatusService(),
       ]);
       setClients(clientesData);
       setOrders(pedidosData);

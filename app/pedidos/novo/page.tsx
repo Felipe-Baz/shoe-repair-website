@@ -10,23 +10,43 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowLeft, Loader2, CheckCircle, Search, Upload, X } from "lucide-react"
+import { ArrowLeft, Loader2, CheckCircle, Search, Upload, X, Plus, Minus } from "lucide-react"
 import Link from "next/link"
-import { createPedidoService, getClientesService } from "@/lib/apiService"
+import { createPedidoService, getClientesService, getStatusColumnsService } from "@/lib/apiService"
 import { useRouter } from "next/navigation"
 
-// Busca clientes reais da API
+// Serviços disponíveis com preços sugeridos
+const availableServices = [
+  { id: "limpeza-simples", name: "Limpeza Simples", suggestedPrice: 30 },
+  { id: "limpeza-completa", name: "Limpeza Completa", suggestedPrice: 50 },
+  { id: "restauracao", name: "Restauração", suggestedPrice: 80 },
+  { id: "reparo", name: "Reparo", suggestedPrice: 40 },
+  { id: "customizacao", name: "Customização", suggestedPrice: 120 },
+  { id: "pintura", name: "Pintura", suggestedPrice: 60 },
+  { id: "troca-sola", name: "Troca de Sola", suggestedPrice: 70 },
+  { id: "costura", name: "Costura", suggestedPrice: 35 },
+];
 
-const serviceTypes = [
-  "Limpeza Simples",
-  "Limpeza Completa",
-  "Restauração",
-  "Reparo",
-  "Customização",
-  "Pintura",
-  "Troca de Sola",
-  "Costura",
-]
+interface StatusColumn {
+  [columnName: string]: any[];
+}
+
+// Departamentos disponíveis
+const departments = [
+  { value: "atendimento", label: "Atendimento" },
+  { value: "lavagem", label: "Lavagem" },
+  { value: "pintura", label: "Pintura" },
+  { value: "costura", label: "Costura" },
+  { value: "acabamento", label: "Acabamento" },
+];
+
+// Interface para serviços selecionados
+interface SelectedService {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+}
 
 import { useEffect } from "react"
 
@@ -35,30 +55,35 @@ export default function NewOrderPage() {
   const [formData, setFormData] = useState({
     clientId: "",
     sneaker: "",
-    serviceType: "",
-    description: "",
-    price: "",
     expectedDate: "",
-    status: "iniciado",
+    department: "atendimento", // Departamento de destino
+    observations: "",
   })
+  const [selectedServices, setSelectedServices] = useState<SelectedService[]>([])
   const [clientSearch, setClientSearch] = useState("")
   const [clients, setClients] = useState<any[]>([]);
+  const [statusColumns, setStatusColumns] = useState<StatusColumn>({});
   const [loadingClients, setLoadingClients] = useState(true);
 
   useEffect(() => {
-    async function fetchClients() {
+    async function fetchdata() {
       try {
-        const data = await getClientesService();
-        setClients(data);
+        const [columnsData, clientsData] = await Promise.all([
+          getStatusColumnsService(),
+          getClientesService()
+        ]);
+
+        setStatusColumns(columnsData);
+        setClients(clientsData);
       } catch (err) {
         // erro ao buscar clientes
       } finally {
         setLoadingClients(false);
       }
     }
-    fetchClients();
+    fetchdata();
   }, []);
-  
+
   // Fotos do tênis
   const [photos, setPhotos] = useState<File[]>([])
   // Manipuladores de upload/remover foto
@@ -101,6 +126,35 @@ export default function NewOrderPage() {
     }
   }
 
+  // Funções para gerenciar serviços selecionados
+  const addService = (serviceId: string) => {
+    const service = availableServices.find(s => s.id === serviceId);
+    if (service && !selectedServices.find(s => s.id === serviceId)) {
+      setSelectedServices(prev => [...prev, {
+        id: service.id,
+        name: service.name,
+        price: service.suggestedPrice,
+        description: ""
+      }]);
+    }
+  };
+
+  const removeService = (serviceId: string) => {
+    setSelectedServices(prev => prev.filter(s => s.id !== serviceId));
+  };
+
+  const updateService = (serviceId: string, field: 'price' | 'description', value: string | number) => {
+    setSelectedServices(prev => prev.map(service =>
+      service.id === serviceId
+        ? { ...service, [field]: value }
+        : service
+    ));
+  };
+
+  const getTotalPrice = () => {
+    return selectedServices.reduce((total, service) => total + service.price, 0);
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
@@ -112,27 +166,50 @@ export default function NewOrderPage() {
       newErrors.sneaker = "Modelo do tênis é obrigatório"
     }
 
-    if (!formData.serviceType) {
-      newErrors.serviceType = "Tipo de serviço é obrigatório"
+    if (selectedServices.length === 0) {
+      newErrors.services = "Pelo menos um serviço deve ser selecionado"
     }
 
-    if (!formData.description.trim()) {
-      newErrors.description = "Descrição é obrigatória"
-    }
-
-    if (!formData.price.trim()) {
-      newErrors.price = "Preço é obrigatório"
-    } else if (isNaN(Number(formData.price)) || Number(formData.price) <= 0) {
-      newErrors.price = "Preço deve ser um número válido maior que zero"
+    // Validar se todos os serviços têm preço válido
+    const hasInvalidService = selectedServices.some(service =>
+      service.price <= 0 || isNaN(service.price)
+    );
+    if (hasInvalidService) {
+      newErrors.services = "Todos os serviços devem ter preços válidos"
     }
 
     if (!formData.expectedDate) {
       newErrors.expectedDate = "Data prevista é obrigatória"
     }
 
+    if (!formData.department) {
+      newErrors.department = "Departamento é obrigatório"
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
+
+  const getFirstStatusForSector = (sector: string): string | null => {
+    const columnNames = Object.keys(statusColumns);
+
+    switch (sector) {
+      case "atendimento":
+        // Prioriza "A Fazer" do atendimento, senão pega o primeiro disponível
+        return columnNames.find(col => col.includes("Atendimento") && col.includes("Recebido")) ||
+          columnNames.find(col => col.includes("Atendimento")) || null;
+      case "lavagem":
+        // Prioriza "A Fazer" da lavagem, senão pega o primeiro disponível
+        return columnNames.find(col => col.includes("Lavagem") && col.includes("A Fazer")) ||
+          columnNames.find(col => col.includes("Lavagem")) || null;
+      case "pintura":
+        // Prioriza "A Fazer" da pintura, senão pega o primeiro disponível
+        return columnNames.find(col => col.includes("Pintura") && col.includes("A Fazer")) ||
+          columnNames.find(col => col.includes("Pintura")) || null;
+      default:
+        return null;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,20 +227,29 @@ export default function NewOrderPage() {
       // Em produção, faça upload real e obtenha as URLs
       const fotosUrls = photos.map((file) => URL.createObjectURL(file));
 
+      // Agregar informações dos serviços
+      const servicosInfo = selectedServices.map(service => ({
+        id: service.id,
+        nome: service.name,
+        preco: service.price,
+        descricao: service.description
+      }));
+
       await createPedidoService({
         clienteId: formData.clientId,
         modeloTenis: formData.sneaker,
-        tipoServico: formData.serviceType,
-        descricaoServicos: formData.description,
+        servicos: servicosInfo,
         fotos: fotosUrls,
-        preco: Number(formData.price),
+        precoTotal: getTotalPrice(),
         dataPrevistaEntrega: formData.expectedDate,
-        status: formData.status,
+        departamento: formData.department,
+        observacoes: formData.observations,
+        status: getFirstStatusForSector(formData.department) || undefined,
       });
       setSuccess(true);
       setIsLoading(false);
       setTimeout(() => {
-        router.push("/pedidos");
+        router.push("/dashboard");
       }, 1000);
     } catch (err: any) {
       setIsLoading(false);
@@ -178,7 +264,7 @@ export default function NewOrderPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <Link href="/pedidos">
+              <Link href="/dashboard">
                 <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary/80">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Voltar
@@ -223,9 +309,8 @@ export default function NewOrderPage() {
                       {filteredClients.map((client) => (
                         <div
                           key={client.id}
-                          className={`p-3 cursor-pointer hover:bg-muted ${
-                            formData.clientId === client.id ? "bg-accent" : ""
-                          }`}
+                          className={`p-3 cursor-pointer hover:bg-muted ${formData.clientId === client.id ? "bg-accent" : ""
+                            }`}
                           onClick={() => {
                             handleSelectChange("clientId", client.id)
                             setClientSearch("")
@@ -233,7 +318,7 @@ export default function NewOrderPage() {
                         >
                           <p className="font-medium">{client.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {client.cpf} - {client.phone}
+                            Nome: {client.nomeCompleto} - cpf: {client.cpf}
                           </p>
                         </div>
                       ))}
@@ -246,7 +331,7 @@ export default function NewOrderPage() {
                     <div className="p-3 bg-muted rounded-md">
                       <p className="font-medium">{selectedClient.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {selectedClient.cpf} - {selectedClient.phone}
+                        Nome: {selectedClient.nomeCompleto} - cpf: {selectedClient.cpf}
                       </p>
                     </div>
                   )}
@@ -269,39 +354,99 @@ export default function NewOrderPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="serviceType">Tipo de Serviço *</Label>
+                  <Label htmlFor="department">Departamento *</Label>
                   <Select
-                    value={formData.serviceType}
-                    onValueChange={(value) => handleSelectChange("serviceType", value)}
+                    value={formData.department}
+                    onValueChange={(value) => handleSelectChange("department", value)}
                   >
-                    <SelectTrigger className={errors.serviceType ? "border-destructive" : ""}>
-                      <SelectValue placeholder="Selecione o serviço" />
+                    <SelectTrigger className={errors.department ? "border-destructive" : ""}>
+                      <SelectValue placeholder="Selecione o departamento" />
                     </SelectTrigger>
                     <SelectContent>
-                      {serviceTypes.map((service) => (
-                        <SelectItem key={service} value={service}>
-                          {service}
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.value} value={dept.value}>
+                          {dept.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.serviceType && <p className="text-sm text-destructive">{errors.serviceType}</p>}
+                  {errors.department && <p className="text-sm text-destructive">{errors.department}</p>}
                 </div>
               </div>
 
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Descrição do Serviço *</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Descreva detalhadamente o serviço a ser realizado..."
-                  rows={3}
-                  className={errors.description ? "border-destructive" : ""}
-                />
-                {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
+              {/* Seleção de Serviços */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <Label>Serviços *</Label>
+                  <Select
+                    onValueChange={(value) => addService(value)}
+                  >
+                    <SelectTrigger className="w-64">
+                      <SelectValue placeholder="Adicionar serviço" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableServices
+                        .filter(service => !selectedServices.find(s => s.id === service.id))
+                        .map((service) => (
+                          <SelectItem key={service.id} value={service.id}>
+                            {service.name} - R$ {service.suggestedPrice.toFixed(2)}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedServices.length > 0 && (
+                  <div className="space-y-3">
+                    {selectedServices.map((service) => (
+                      <div key={service.id} className="border rounded-lg p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium">{service.name}</h4>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeService(service.id)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label>Preço (R$)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={service.price}
+                              onChange={(e) => updateService(service.id, 'price', Number(e.target.value))}
+                              placeholder="0.00"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Descrição/Observações</Label>
+                            <Input
+                              value={service.description}
+                              onChange={(e) => updateService(service.id, 'description', e.target.value)}
+                              placeholder="Detalhes específicos do serviço..."
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    <div className="text-right">
+                      <p className="text-lg font-semibold">
+                        Total: R$ {getTotalPrice().toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {errors.services && <p className="text-sm text-destructive">{errors.services}</p>}
               </div>
 
               {/* Photo Upload */}
@@ -348,23 +493,7 @@ export default function NewOrderPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">Preço (R$) *</Label>
-                  <Input
-                    id="price"
-                    name="price"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.price}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                    className={errors.price ? "border-destructive" : ""}
-                  />
-                  {errors.price && <p className="text-sm text-destructive">{errors.price}</p>}
-                </div>
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="expectedDate">Data Prevista *</Label>
                   <Input
@@ -379,17 +508,15 @@ export default function NewOrderPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status Inicial</Label>
-                  <Select value={formData.status} onValueChange={(value) => handleSelectChange("status", value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="iniciado">Iniciado</SelectItem>
-                      <SelectItem value="em-processamento">Em Processamento</SelectItem>
-                      <SelectItem value="concluido">Concluído</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="observations">Observações Gerais</Label>
+                  <Textarea
+                    id="observations"
+                    name="observations"
+                    value={formData.observations}
+                    onChange={handleInputChange}
+                    placeholder="Observações adicionais sobre o pedido..."
+                    rows={2}
+                  />
                 </div>
               </div>
 

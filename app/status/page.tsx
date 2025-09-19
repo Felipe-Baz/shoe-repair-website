@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, ArrowRight, CheckCircle, Clock, Play, Eye, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { CardDetalhesPedido } from "@/components/CardDetalhesPedido"
-import { getStatusColumnsService, getOrdersService, updateOrderStatusService } from "@/lib/apiService"
+import { getStatusColumnsService, getOrdersStatusService, updateOrderStatusService } from "@/lib/apiService"
 
 // Interface para as colunas de status
 interface StatusColumn {
@@ -104,7 +104,7 @@ export default function StatusControlPage() {
         // Usando API real
         const [columnsData, ordersData] = await Promise.all([
           getStatusColumnsService(),
-          getOrdersService()
+          getOrdersStatusService()
         ]);
         
         setStatusColumns(columnsData);
@@ -563,7 +563,7 @@ export default function StatusControlPage() {
                                 <strong>Serviço:</strong> {order.serviceType}
                               </p>
                               <p>
-                                <strong>Valor:</strong> R$ {order.price.toFixed(2)}
+                                <strong>Valor:</strong> R$ {Number(order.price).toFixed(2)}
                               </p>
                               <p>
                                 <strong>Previsão:</strong> {order.expectedDate}

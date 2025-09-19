@@ -1,3 +1,36 @@
+export interface ServicoPedido {
+  preco: number;
+  nome: string;
+  id: string;
+  descricao: string;
+}
+
+export interface StatusHistoryPedido {
+  date: string;
+  time: string;
+  userName: string;
+  userId: string;
+  status: string;
+}
+
+export interface Pedido {
+  observacoes: string;
+  departamento: string;
+  status: string;
+  fotos: string[];
+  createdAt: string;
+  precoTotal: number;
+  servicos: ServicoPedido[];
+  statusHistory: StatusHistoryPedido[];
+  dataCriacao: string;
+  dataPrevistaEntrega: string;
+  modeloTenis: string;
+  updatedAt: string;
+  id: string;
+  clienteId: string;
+}
+
+// ...existing code...
 // Busca cliente por ID
 export async function getClienteByIdService(id: string) {
   const token = localStorage.getItem("token");
@@ -33,12 +66,18 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
 export async function createPedidoService(pedido: {
   clienteId: string;
   modeloTenis: string;
-  tipoServico: string;
-  descricaoServicos: string;
+  servicos: Array<{
+    id: string;
+    nome: string;
+    preco: number;
+    descricao: string;
+  }>;
   fotos: string[];
-  preco: number;
+  precoTotal: number;
   dataPrevistaEntrega: string;
-  status: string;
+  departamento: string;
+  observacoes: string;
+  status?: string;
 }) {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_BASE_URL}/pedidos`, {
@@ -115,7 +154,10 @@ export async function loginService(email: string, password: string) {
   if (!response.ok) throw new Error("Email ou senha incorretos");
   const data = await response.json()
   console.log("Login response data:", data)
+  // Salva no localStorage
   localStorage.setItem("token", data.token)
+  // Salva no cookie (disponível para o middleware)
+  document.cookie = `token=${data.token}; path=/; max-age=604800; secure; samesite=strict`;
   return data
 }
 
@@ -140,9 +182,28 @@ export async function getStatusColumnsService() {
 }
 
 // Busca lista de pedidos
-export async function getOrdersService() {
+export async function getOrdersStatusService() {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_BASE_URL}/pedidos/kanban/status`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao buscar pedidos");
+  }
+  
+  const result = await response.json();
+  return result.data; // Retorna apenas o array de pedidos
+}
+
+export async function getOrdersService() {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/pedidos`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
