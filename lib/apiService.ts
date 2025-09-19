@@ -102,25 +102,6 @@ export async function getClientesService() {
   return data
 }
 
-export async function getOrdersService() {
-  const token = localStorage.getItem("token")
-  console.log("Token in getOrdersService:", token)
-  const response = await fetch(`${API_BASE_URL}/pedidos`, {
-    method: "GET",
-    headers: { 
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
-    },
-  })
-  const responseClone = response.clone();
-  console.log('Login response status:', response.status);
-  console.log('Login response headers:', response.headers);
-  console.log('Login response body:', await responseClone.text());
-  if (!response.ok) throw new Error("Email ou senha incorretos");
-  const data = await response.json()
-  return data
-}
-
 export async function loginService(email: string, password: string) {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
@@ -141,6 +122,26 @@ export async function loginService(email: string, password: string) {
 // Busca as colunas de status baseadas no cargo do usuário
 export async function getStatusColumnsService() {
   const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/status/columns`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao buscar colunas de status");
+  }
+  
+  const result = await response.json();
+  return result.data; // Retorna apenas os dados das colunas
+}
+
+// Busca lista de pedidos
+export async function getOrdersService() {
+  const token = localStorage.getItem("token");
   const response = await fetch(`${API_BASE_URL}/pedidos/kanban/status`, {
     method: "GET",
     headers: {
@@ -148,8 +149,14 @@ export async function getStatusColumnsService() {
       "Authorization": `Bearer ${token}`,
     },
   });
-  if (!response.ok) throw new Error("Erro ao buscar colunas de status");
-  return response.json();
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao buscar pedidos");
+  }
+  
+  const result = await response.json();
+  return result.data; // Retorna apenas o array de pedidos
 }
 
 // Atualiza o status de um pedido
@@ -163,8 +170,14 @@ export async function updateOrderStatusService(orderId: string, newStatus: strin
     },
     body: JSON.stringify({ status: newStatus }),
   });
-  if (!response.ok) throw new Error("Erro ao atualizar status do pedido");
-  return response.json();
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao atualizar status do pedido");
+  }
+  
+  const result = await response.json();
+  return result.data; // Retorna o pedido atualizado
 }
 
 export async function apiFetch(

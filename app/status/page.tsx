@@ -10,7 +10,6 @@ import { ArrowLeft, ArrowRight, CheckCircle, Clock, Play, Eye, Loader2 } from "l
 import Link from "next/link"
 import { CardDetalhesPedido } from "@/components/CardDetalhesPedido"
 import { getStatusColumnsService, getOrdersService, updateOrderStatusService } from "@/lib/apiService"
-import { getMockStatusColumnsService, getMockOrdersService, MOCK_USER_ROLE } from "@/lib/mockData"
 
 // Interface para as colunas de status
 interface StatusColumn {
@@ -102,46 +101,20 @@ export default function StatusControlPage() {
       try {
         setLoading(true);
         
-        // Para demonstração, você pode alternar entre dados reais e mock
-        // Altere USE_MOCK_DATA para false quando a API estiver pronta
-        const USE_MOCK_DATA = true;
+        // Usando API real
+        const [columnsData, ordersData] = await Promise.all([
+          getStatusColumnsService(),
+          getOrdersService()
+        ]);
         
-        if (USE_MOCK_DATA) {
-          // Usando dados mock para demonstração
-          const [columnsData, ordersData] = await Promise.all([
-            getMockStatusColumnsService(MOCK_USER_ROLE),
-            getMockOrdersService()
-          ]);
-          setStatusColumns(columnsData);
-          setOrders(ordersData);
-        } else {
-          // Usando API real
-          const [columnsData, ordersData] = await Promise.all([
-            getStatusColumnsService(),
-            getOrdersService()
-          ]);
-          setStatusColumns(columnsData);
-          setOrders(ordersData);
-        }
+        setStatusColumns(columnsData);
+        setOrders(ordersData);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
-        // Fallback para dados mock em caso de erro
-        try {
-          const [columnsData, ordersData] = await Promise.all([
-            getMockStatusColumnsService(MOCK_USER_ROLE),
-            getMockOrdersService()
-          ]);
-          setStatusColumns(columnsData);
-          setOrders(ordersData);
-        } catch (mockError) {
-          console.error("Erro ao carregar dados mock:", mockError);
-          setStatusColumns({
-            "A Fazer": [],
-            "Em Andamento": [],
-            "Concluído": []
-          });
-          setOrders([]);
-        }
+        // Em caso de erro, mostra mensagem e mantém tela vazia
+        setSuccessMessage("Erro ao carregar dados. Verifique sua conexão e tente novamente.");
+        setStatusColumns({});
+        setOrders([]);
       } finally {
         setLoading(false);
       }
@@ -153,22 +126,23 @@ export default function StatusControlPage() {
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       // Atualiza no backend
-      await updateOrderStatusService(orderId, newStatus);
+      const updatedOrder = await updateOrderStatusService(orderId, newStatus);
       
-      // Atualiza localmente
+      // Atualiza localmente com os dados retornados do backend
       setOrders((prevOrders) =>
         prevOrders.map((order) => {
           if (order.id === orderId) {
-            const now = new Date();
-            const newHistoryEntry = {
-              status: newStatus,
-              date: now.toISOString().split("T")[0],
-              time: now.toTimeString().slice(0, 5),
-            };
             return {
               ...order,
               status: newStatus,
-              statusHistory: [...order.statusHistory, newHistoryEntry],
+              statusHistory: updatedOrder.statusHistory || [
+                ...order.statusHistory,
+                {
+                  status: newStatus,
+                  date: new Date().toISOString().split("T")[0],
+                  time: new Date().toTimeString().slice(0, 5),
+                }
+              ]
             };
           }
           return order;
@@ -177,10 +151,21 @@ export default function StatusControlPage() {
 
       setSuccessMessage(`Pedido #${orderId} atualizado para ${getStatusInfo(newStatus).label}`);
       setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao atualizar status:", error);
-      setSuccessMessage("Erro ao atualizar status do pedido");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      
+      // Mensagens de erro mais específicas
+      let errorMessage = "Erro ao atualizar status do pedido";
+      if (error.message.includes("não tem permissão")) {
+        errorMessage = "Você não tem permissão para alterar para este status";
+      } else if (error.message.includes("não encontrado")) {
+        errorMessage = "Pedido não encontrado";
+      } else if (error.message.includes("Token")) {
+        errorMessage = "Sessão expirada. Faça login novamente";
+      }
+      
+      setSuccessMessage(errorMessage);
+      setTimeout(() => setSuccessMessage(""), 5000);
     }
   };
 
@@ -350,6 +335,63 @@ export default function StatusControlPage() {
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Carregando status dos pedidos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Verificar se não há dados (possível erro de API ou usuário sem permissões)
+  const hasData = Object.keys(statusColumns).length > 0;
+  const hasOrders = orders.length > 0;
+
+  if (!hasData) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="w-full bg-primary text-primary-foreground shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row md:items-center gap-4">
+            <div className="flex items-center gap-2 mb-2 md:mb-0">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary/80">
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Voltar
+                  </Button>
+              </Link>
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold font-serif tracking-tight">Controle de Status dos Pedidos</h1>
+              <p className="text-sm text-primary-foreground/80 mt-1">
+                Acompanhe e avance os pedidos de clientes facilmente pelo status.
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Alert className="mb-6 border-yellow-200 bg-yellow-50">
+            <Clock className="h-4 w-4 text-yellow-600" />
+            <AlertDescription className="text-yellow-800">
+              Não foi possível carregar as colunas de status. Verifique sua conexão e permissões, ou entre em contato com o administrador.
+            </AlertDescription>
+          </Alert>
+          
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Clock className="w-16 h-16 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold text-muted-foreground mb-2">
+                Nenhuma coluna de status disponível
+              </h3>
+              <p className="text-sm text-muted-foreground text-center max-w-md">
+                Isso pode acontecer se você não tiver permissões adequadas ou se houver um problema na conexão com o servidor.
+              </p>
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="mt-4"
+                variant="outline"
+              >
+                Tentar Novamente
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
