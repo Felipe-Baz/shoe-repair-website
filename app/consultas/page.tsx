@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { getClientesService, getOrdersService } from "@/lib/apiService"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,100 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, ArrowLeft, User, Package, Calendar, Filter } from "lucide-react"
 import Link from "next/link"
 
-// Mock data
-const mockClients = [
-  {
-    id: "1",
-    name: "João Silva",
-    cpf: "123.456.789-00",
-    phone: "(11) 99999-9999",
-    email: "joao@email.com",
-    address: "Rua das Flores, 123 - São Paulo, SP",
-    totalOrders: 5,
-    lastOrder: "2024-01-15",
-  },
-  {
-    id: "2",
-    name: "Maria Santos",
-    cpf: "987.654.321-00",
-    phone: "(11) 88888-8888",
-    email: "maria@email.com",
-    address: "Av. Paulista, 456 - São Paulo, SP",
-    totalOrders: 3,
-    lastOrder: "2024-01-14",
-  },
-  {
-    id: "3",
-    name: "Pedro Costa",
-    cpf: "456.789.123-00",
-    phone: "(11) 77777-7777",
-    email: "pedro@email.com",
-    address: "Rua Augusta, 789 - São Paulo, SP",
-    totalOrders: 8,
-    lastOrder: "2024-01-13",
-  },
-  {
-    id: "4",
-    name: "Ana Oliveira",
-    cpf: "321.654.987-00",
-    phone: "(11) 66666-6666",
-    email: "ana@email.com",
-    address: "Rua Oscar Freire, 321 - São Paulo, SP",
-    totalOrders: 2,
-    lastOrder: "2024-01-12",
-  },
-]
 
-const mockOrders = [
-  {
-    id: "001",
-    clientName: "João Silva",
-    clientCpf: "123.456.789-00",
-    sneaker: "Nike Air Max 90",
-    serviceType: "Limpeza Completa",
-    description: "Limpeza profunda com hidratação do couro",
-    price: 80.0,
-    status: "em-processamento",
-    createdDate: "2024-01-15",
-    expectedDate: "2024-01-20",
-  },
-  {
-    id: "002",
-    clientName: "Maria Santos",
-    clientCpf: "987.654.321-00",
-    sneaker: "Adidas Ultraboost",
-    serviceType: "Restauração",
-    description: "Restauração da sola e pintura",
-    price: 120.0,
-    status: "iniciado",
-    createdDate: "2024-01-14",
-    expectedDate: "2024-01-25",
-  },
-  {
-    id: "003",
-    clientName: "Pedro Costa",
-    clientCpf: "456.789.123-00",
-    sneaker: "Vans Old Skool",
-    serviceType: "Reparo",
-    description: "Reparo de rasgos e costura",
-    price: 60.0,
-    status: "concluido",
-    createdDate: "2024-01-13",
-    expectedDate: "2024-01-18",
-  },
-  {
-    id: "004",
-    clientName: "Ana Oliveira",
-    clientCpf: "321.654.987-00",
-    sneaker: "Converse All Star",
-    serviceType: "Customização",
-    description: "Pintura personalizada e aplicação de patches",
-    price: 150.0,
-    status: "iniciado",
-    createdDate: "2024-01-12",
-    expectedDate: "2024-01-22",
-  },
-]
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -141,6 +49,27 @@ export default function ConsultasPage() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [hasSearched, setHasSearched] = useState(false);
   const [tab, setTab] = useState("clientes");
+  const [clients, setClients] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // Busca clientes e pedidos ao buscar
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [clientesData, pedidosData] = await Promise.all([
+        getClientesService(),
+        getOrdersService(),
+      ]);
+      setClients(clientesData);
+      setOrders(pedidosData);
+    } catch (err: any) {
+      setError("Erro ao buscar dados");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const urlSearchType = searchParams.get("searchType");
@@ -158,7 +87,8 @@ export default function ConsultasPage() {
     }
   }, [searchParams]);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
+    await fetchData();
     setHasSearched(true);
   };
 
@@ -172,65 +102,61 @@ export default function ConsultasPage() {
 
   // Filter clients based on search criteria
   const filteredClients = hasSearched
-    ? mockClients.filter((client) => {
-        if (!searchTerm.trim()) return false
-
-        switch (searchType) {
-          case "nome":
-            return client.name.toLowerCase().includes(searchTerm.toLowerCase())
-          case "cpf":
-            return client.cpf.includes(searchTerm.replace(/\D/g, ""))
-          case "telefone":
-            return client.phone.includes(searchTerm.replace(/\D/g, ""))
-          case "email":
-            return client.email.toLowerCase().includes(searchTerm.toLowerCase())
-          default:
-            return false
-        }
-      })
-    : []
+    ? (searchTerm.trim()
+        ? clients.filter((client) => {
+            switch (searchType) {
+              case "nome":
+                return (client.nomeCompleto || "").toLowerCase().includes(searchTerm.toLowerCase());
+              case "cpf":
+                return (client.cpf || "").includes(searchTerm.replace(/\D/g, ""));
+              case "telefone":
+                return (client.telefone || "").includes(searchTerm.replace(/\D/g, ""));
+              case "email":
+                return (client.email || "").toLowerCase().includes(searchTerm.toLowerCase());
+              default:
+                return false;
+            }
+          })
+        : clients)
+    : [];
 
   // Filter orders based on search criteria
   const filteredOrders = hasSearched
-    ? mockOrders.filter((order) => {
-        let matchesSearch = false
-
+    ? orders.filter((order) => {
+        let matchesSearch = false;
         if (searchTerm.trim()) {
           switch (searchType) {
             case "nome":
-              matchesSearch = order.clientName.toLowerCase().includes(searchTerm.toLowerCase())
-              break
+              matchesSearch = (order.cliente?.nomeCompleto || "").toLowerCase().includes(searchTerm.toLowerCase());
+              break;
             case "cpf":
-              matchesSearch = order.clientCpf.includes(searchTerm.replace(/\D/g, ""))
-              break
+              matchesSearch = (order.cliente?.cpf || "").includes(searchTerm.replace(/\D/g, ""));
+              break;
             case "tenis":
-              matchesSearch = order.sneaker.toLowerCase().includes(searchTerm.toLowerCase())
-              break
+              matchesSearch = (order.modeloTenis || "").toLowerCase().includes(searchTerm.toLowerCase());
+              break;
             default:
-              matchesSearch = true
+              matchesSearch = true;
           }
         } else {
-          matchesSearch = true
+          matchesSearch = true;
         }
-
         // Filter by date range
-        let matchesDate = true
+        let matchesDate = true;
         if (dateFrom || dateTo) {
-          const orderDate = new Date(order.createdDate)
+          const orderDate = new Date(order.createdAt || order.dataPrevistaEntrega);
           if (dateFrom) {
-            matchesDate = matchesDate && orderDate >= new Date(dateFrom)
+            matchesDate = matchesDate && orderDate >= new Date(dateFrom);
           }
           if (dateTo) {
-            matchesDate = matchesDate && orderDate <= new Date(dateTo)
+            matchesDate = matchesDate && orderDate <= new Date(dateTo);
           }
         }
-
         // Filter by status
-        const matchesStatus = statusFilter === "todos" || order.status === statusFilter
-
-        return matchesSearch && matchesDate && matchesStatus
+        const matchesStatus = statusFilter === "todos" || order.status === statusFilter;
+        return matchesSearch && matchesDate && matchesStatus;
       })
-    : []
+    : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -361,15 +287,16 @@ export default function ConsultasPage() {
                         <div key={client.id} className="p-4 border rounded-lg">
                           <div className="flex justify-between items-start">
                             <div>
-                              <h3 className="font-semibold text-lg">{client.name}</h3>
+                              <h3 className="font-semibold text-lg">{client.nomeCompleto}</h3>
                               <p className="text-sm text-muted-foreground">CPF: {client.cpf}</p>
-                              <p className="text-sm text-muted-foreground">Telefone: {client.phone}</p>
+                              <p className="text-sm text-muted-foreground">Telefone: {client.telefone}</p>
                               <p className="text-sm text-muted-foreground">Email: {client.email}</p>
-                              <p className="text-sm text-muted-foreground">Endereço: {client.address}</p>
+                              <p className="text-sm text-muted-foreground">Endereço: {client.logradouro}, {client.numero} {client.complemento ? `- ${client.complemento}` : ""}, {client.bairro}, {client.cidade} - {client.estado}, CEP: {client.cep}</p>
+                              {client.observacoes && (
+                                <p className="text-xs text-muted-foreground italic">Obs: {client.observacoes}</p>
+                              )}
                             </div>
                             <div className="text-right">
-                              <p className="text-sm font-medium">{client.totalOrders} pedidos</p>
-                              <p className="text-xs text-muted-foreground">Último: {client.lastOrder}</p>
                               <div className="mt-2 space-x-2">
                                 <Button variant="outline" size="sm">
                                   Ver Pedidos
@@ -415,29 +342,41 @@ export default function ConsultasPage() {
                                 {getStatusBadge(order.status)}
                               </div>
                               <p className="text-sm text-muted-foreground mb-2">
-                                Cliente: {order.clientName} - {order.clientCpf}
+                                Cliente ID: {order.clienteId}
                               </p>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                 <div>
                                   <p className="font-medium text-muted-foreground">Tênis</p>
-                                  <p>{order.sneaker}</p>
+                                  <p>{order.modeloTenis}</p>
                                 </div>
                                 <div>
                                   <p className="font-medium text-muted-foreground">Serviço</p>
-                                  <p>{order.serviceType}</p>
+                                  <p>{order.tipoServico}</p>
                                 </div>
                                 <div>
                                   <p className="font-medium text-muted-foreground">Valor</p>
-                                  <p className="font-semibold text-green-600">R$ {order.price.toFixed(2)}</p>
+                                  <p className="font-semibold text-green-600">R$ {order.preco?.toFixed(2)}</p>
                                 </div>
                                 <div>
-                                  <p className="font-medium text-muted-foreground">Data</p>
-                                  <p>{order.createdDate}</p>
+                                  <p className="font-medium text-muted-foreground">Previsão</p>
+                                  <p>{order.dataPrevistaEntrega}</p>
                                 </div>
                               </div>
                               <p className="text-sm text-muted-foreground mt-2">
-                                <strong>Descrição:</strong> {order.description}
+                                <strong>Descrição:</strong> {order.descricaoServicos}
                               </p>
+                              {order.fotos && order.fotos.length > 0 && (
+                                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+                                  {order.fotos.map((foto: string, idx: number) => (
+                                    <img
+                                      key={idx}
+                                      src={foto}
+                                      alt={`Foto do pedido ${order.id} - ${idx + 1}`}
+                                      className="w-full h-24 object-cover rounded"
+                                    />
+                                  ))}
+                                </div>
+                              )}
                             </div>
                             <div className="ml-4 space-x-2">
                               <Button variant="outline" size="sm">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,57 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus, ArrowLeft, Eye } from "lucide-react"
 import Link from "next/link"
 
-// Mock data for orders
-const mockOrders = [
-  {
-    id: "001",
-    clientName: "João Silva",
-    clientCpf: "123.456.789-00",
-    sneaker: "Nike Air Max 90",
-    serviceType: "Limpeza Completa",
-    description: "Limpeza profunda com hidratação do couro",
-    price: 80.0,
-    status: "em-processamento",
-    createdDate: "2024-01-15",
-    expectedDate: "2024-01-20",
-  },
-  {
-    id: "002",
-    clientName: "Maria Santos",
-    clientCpf: "987.654.321-00",
-    sneaker: "Adidas Ultraboost",
-    serviceType: "Restauração",
-    description: "Restauração da sola e pintura",
-    price: 120.0,
-    status: "iniciado",
-    createdDate: "2024-01-14",
-    expectedDate: "2024-01-25",
-  },
-  {
-    id: "003",
-    clientName: "Pedro Costa",
-    clientCpf: "456.789.123-00",
-    sneaker: "Vans Old Skool",
-    serviceType: "Reparo",
-    description: "Reparo de rasgos e costura",
-    price: 60.0,
-    status: "concluido",
-    createdDate: "2024-01-13",
-    expectedDate: "2024-01-18",
-  },
-  {
-    id: "004",
-    clientName: "Ana Oliveira",
-    clientCpf: "321.654.987-00",
-    sneaker: "Converse All Star",
-    serviceType: "Customização",
-    description: "Pintura personalizada e aplicação de patches",
-    price: 150.0,
-    status: "iniciado",
-    createdDate: "2024-01-12",
-    expectedDate: "2024-01-22",
-  },
-]
+import { getOrdersService } from "@/lib/apiService"
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -86,22 +36,40 @@ const getStatusBadge = (status: string) => {
   }
 }
 
+
 export default function OrdersPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("todos")
-  const [orders] = useState(mockOrders)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos");
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchOrders() {
+      try {
+        const data = await getOrdersService();
+        console.log("Fetched orders:", data);
+        setOrders(data);
+      } catch (err: any) {
+        setError("Erro ao buscar pedidos");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchOrders();
+  }, []);
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
-      order.id.includes(searchTerm) ||
-      order.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.sneaker.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.serviceType.toLowerCase().includes(searchTerm.toLowerCase())
+      (order.id || "").includes(searchTerm) ||
+      (order.modeloTenis || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.tipoServico || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.descricaoServicos || "").toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === "todos" || order.status === statusFilter
+    const matchesStatus = statusFilter === "todos" || order.status === statusFilter;
 
-    return matchesSearch && matchesStatus
-  })
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -185,7 +153,7 @@ export default function OrdersPage() {
                           <div>
                             <h3 className="text-lg font-semibold">Pedido #{order.id}</h3>
                             <p className="text-sm text-muted-foreground">
-                              {order.clientName} - {order.clientCpf}
+                              Cliente ID: {order.clienteId}
                             </p>
                           </div>
                           {getStatusBadge(order.status)}
@@ -194,33 +162,46 @@ export default function OrdersPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                           <div>
                             <p className="font-medium text-muted-foreground">Tênis</p>
-                            <p>{order.sneaker}</p>
+                            <p>{order.modeloTenis}</p>
                           </div>
                           <div>
                             <p className="font-medium text-muted-foreground">Serviço</p>
-                            <p>{order.serviceType}</p>
+                            <p>{order.tipoServico}</p>
                           </div>
                           <div>
                             <p className="font-medium text-muted-foreground">Valor</p>
-                            <p className="font-semibold text-green-600">R$ {order.price.toFixed(2)}</p>
+                            <p className="font-semibold text-green-600">R$ {order.preco?.toFixed(2)}</p>
                           </div>
                           <div>
                             <p className="font-medium text-muted-foreground">Previsão</p>
-                            <p>{order.expectedDate}</p>
+                            <p>{order.dataPrevistaEntrega}</p>
                           </div>
                         </div>
 
                         <div className="mt-3">
                           <p className="text-sm text-muted-foreground">
-                            <strong>Descrição:</strong> {order.description}
+                            <strong>Descrição:</strong> {order.descricaoServicos}
                           </p>
                         </div>
+
+                        {order.fotos && order.fotos.length > 0 && (
+                          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+                            {order.fotos.map((foto: string, idx: number) => (
+                              <img
+                                key={idx}
+                                src={foto}
+                                alt={`Foto do pedido ${order.id} - ${idx + 1}`}
+                                className="w-full h-24 object-cover rounded"
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       <div className="text-right space-y-2 ml-4">
                         <div>
-                          <p className="text-xs text-muted-foreground">Criado em</p>
-                          <p className="text-sm">{order.createdDate}</p>
+                          <p className="text-xs text-muted-foreground">ID do Cliente</p>
+                          <p className="text-sm">{order.clienteId}</p>
                         </div>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm">
