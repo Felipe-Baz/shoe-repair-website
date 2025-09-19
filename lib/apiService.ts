@@ -138,6 +138,35 @@ export async function loginService(email: string, password: string) {
   return data
 }
 
+// Busca as colunas de status baseadas no cargo do usuário
+export async function getStatusColumnsService() {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/pedidos/kanban/status`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) throw new Error("Erro ao buscar colunas de status");
+  return response.json();
+}
+
+// Atualiza o status de um pedido
+export async function updateOrderStatusService(orderId: string, newStatus: string) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/pedidos/${orderId}/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify({ status: newStatus }),
+  });
+  if (!response.ok) throw new Error("Erro ao atualizar status do pedido");
+  return response.json();
+}
+
 export async function apiFetch(
   endpoint: string,
   options: RequestInit = {}
