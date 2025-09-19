@@ -104,13 +104,27 @@ export default function LoginPage() {
               <p className="text-sm text-muted-foreground text-center mb-2">
                 <strong>Credenciais de demonstração:</strong>
               </p>
-              <div className="text-sm space-y-1">
-                <p>
-                  <strong>Email:</strong> funcionario@email.com
-                </p>
-                <p>
-                  <strong>Senha:</strong> 123456
-                </p>
+              <div className="text-sm space-y-2">
+                <div>
+                  <p><strong>Admin:</strong></p>
+                  <p>Email: admin@email.com</p>
+                  <p>Senha: 123456</p>
+                </div>
+                <div>
+                  <p><strong>Atendimento:</strong></p>
+                  <p>Email: atendimento@email.com</p>
+                  <p>Senha: 123456</p>
+                </div>
+                <div>
+                  <p><strong>Pintura:</strong></p>
+                  <p>Email: pintura@email.com</p>
+                  <p>Senha: 123456</p>
+                </div>
+                <div>
+                  <p><strong>Lavagem:</strong></p>
+                  <p>Email: lavagem@email.com</p>
+                  <p>Senha: 123456</p>
+                </div>
               </div>
             </div>
           </CardContent>
