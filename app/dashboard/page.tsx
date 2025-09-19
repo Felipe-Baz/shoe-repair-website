@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Users, Package, Clock, CheckCircle, Search, LogOut } from "lucide-react"
-import { apiFetch } from "@/lib/apiService"
+import { apiFetch, getDashboardService } from "@/lib/apiService"
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME
 import Cookies from "js-cookie"
 import Link from "next/link"
@@ -79,7 +79,8 @@ export default function DashboardPage() {
     const fetchDashboardData = async () => {
       try {
         setLoading(true)
-        const data = await apiFetch("/dashboard")
+        const data = await getDashboardService()
+        console.log("Dashboard data:", data)
         setDashboardData(data)
       } catch (err: any) {
         setError(err.message || "Erro ao carregar dados do dashboard")

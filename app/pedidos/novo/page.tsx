@@ -223,8 +223,6 @@ export default function NewOrderPage() {
     setSuccess(false);
 
     try {
-      // Simulação de upload: converte File[] para array de URLs (mock)
-      // Em produção, faça upload real e obtenha as URLs
       const fotosUrls = photos.map((file) => URL.createObjectURL(file));
 
       // Agregar informações dos serviços

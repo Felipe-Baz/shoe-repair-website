@@ -1,3 +1,5 @@
+import { log } from "node:console";
+
 export interface ServicoPedido {
   preco: number;
   nome: string;
@@ -132,10 +134,6 @@ export async function getClientesService() {
       "Authorization": `Bearer ${token}`
     },
   })
-  const responseClone = response.clone();
-  console.log('Login response status:', response.status);
-  console.log('Login response headers:', response.headers);
-  console.log('Login response body:', await responseClone.text());
   if (!response.ok) throw new Error("Email ou senha incorretos");
   const data = await response.json()
   return data
@@ -147,10 +145,6 @@ export async function loginService(email: string, password: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password })
   })
-  const responseClone = response.clone();
-  console.log('Login response status:', response.status);
-  console.log('Login response headers:', response.headers);
-  console.log('Login response body:', await responseClone.text());
   if (!response.ok) throw new Error("Email ou senha incorretos");
   const data = await response.json()
   console.log("Login response data:", data)
@@ -239,6 +233,28 @@ export async function updateOrderStatusService(orderId: string, newStatus: strin
   
   const result = await response.json();
   return result.data; // Retorna o pedido atualizado
+}
+
+export async function getDashboardService() {
+  const token = localStorage.getItem("token");
+  console.log("Token in getDashboardService:", token)
+  const response = await fetch(`${API_BASE_URL}/dashboard`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao buscar dados do dashboard");
+  }
+  
+  const result = await response.json();
+  console.log('Dashboard parsed JSON:', result);
+  
+  return result; // Retorna o objeto completo, não result.data
 }
 
 export async function apiFetch(
