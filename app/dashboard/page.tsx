@@ -80,7 +80,6 @@ export default function DashboardPage() {
       try {
         setLoading(true)
         const data = await getDashboardService()
-        console.log("Dashboard data:", data)
         setDashboardData(data)
       } catch (err: any) {
         setError(err.message || "Erro ao carregar dados do dashboard")

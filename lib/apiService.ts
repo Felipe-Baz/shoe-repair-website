@@ -47,6 +47,34 @@ export async function getClienteByIdService(id: string) {
   return response.json();
 }
 
+// Atualiza um cliente
+export async function updateClienteService(id: string, cliente: Partial<{
+  nomeCompleto: string;
+  cpf: string;
+  telefone: string;
+  email: string;
+  cep: string;
+  logradouro: string;
+  numero: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+  complemento: string;
+  observacoes: string;
+}>) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/clientes/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify(cliente),
+  });
+  if (!response.ok) throw new Error("Erro ao atualizar cliente");
+  return response.json();
+}
+
 // Busca pedido por ID
 export async function getPedidoByIdService(id: string) {
   const token = localStorage.getItem("token");
@@ -110,7 +138,6 @@ export async function createClienteService(cliente: {
   observacoes?: string;
 }) {
   const token = localStorage.getItem("token");
-  console.log("Token in getClientesService:", token)
   const response = await fetch(`${API_BASE_URL}/clientes`, {
     method: "POST",
     headers: {
@@ -126,7 +153,6 @@ export async function createClienteService(cliente: {
 // Busca lista de clientes
 export async function getClientesService() {
   const token = localStorage.getItem("token")
-  console.log("Token in getClientesService:", token)
   const response = await fetch(`${API_BASE_URL}/clientes`, {
     method: "GET",
     headers: { 
@@ -147,7 +173,6 @@ export async function loginService(email: string, password: string) {
   })
   if (!response.ok) throw new Error("Email ou senha incorretos");
   const data = await response.json()
-  console.log("Login response data:", data)
   // Salva no localStorage
   localStorage.setItem("token", data.token)
   // Salva no cookie (disponível para o middleware)
@@ -237,7 +262,6 @@ export async function updateOrderStatusService(orderId: string, newStatus: strin
 
 export async function getDashboardService() {
   const token = localStorage.getItem("token");
-  console.log("Token in getDashboardService:", token)
   const response = await fetch(`${API_BASE_URL}/dashboard`, {
     method: "GET",
     headers: {
@@ -252,8 +276,6 @@ export async function getDashboardService() {
   }
   
   const result = await response.json();
-  console.log('Dashboard parsed JSON:', result);
-  
   return result; // Retorna o objeto completo, não result.data
 }
 
