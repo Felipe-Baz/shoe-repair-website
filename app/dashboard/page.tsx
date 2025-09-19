@@ -1,50 +1,49 @@
 "use client"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Users, Package, Clock, CheckCircle, Search, LogOut } from "lucide-react"
+import { apiFetch } from "@/lib/apiService"
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME
 import Cookies from "js-cookie"
 import Link from "next/link"
 
-// Mock data for dashboard
-const mockStats = {
-  totalClients: 156,
-  activeOrders: 23,
-  pendingOrders: 8,
-  completedToday: 5,
+// Interfaces para tipagem dos dados da API
+interface DashboardStats {
+  totalClients: number
+  activeOrders: number
+  pendingOrders: number
+  completedToday: number
 }
 
-const mockRecentOrders = [
-  {
-    id: "001",
-    clientName: "João Silva",
-    sneaker: "Nike Air Max 90",
-    status: "em-processamento",
-    date: "2024-01-15",
-  },
-  {
-    id: "002",
-    clientName: "Maria Santos",
-    sneaker: "Adidas Ultraboost",
-    status: "iniciado",
-    date: "2024-01-14",
-  },
-  {
-    id: "003",
-    clientName: "Pedro Costa",
-    sneaker: "Vans Old Skool",
-    status: "concluido",
-    date: "2024-01-13",
-  },
-  {
-    id: "004",
-    clientName: "Ana Oliveira",
-    sneaker: "Converse All Star",
-    status: "iniciado",
-    date: "2024-01-12",
-  },
-]
+interface RecentOrder {
+  id: string
+  clientName: string
+  clientCpf: string
+  sneaker: string
+  serviceType: string
+  description: string
+  price: number
+  status: string
+  createdDate: string
+  expectedDate: string
+  statusHistory: Array<{
+    status: string
+    date: string
+    time: string
+  }>
+}
+
+interface DashboardData {
+  stats: DashboardStats
+  recentOrders: RecentOrder[]
+  user: {
+    name: string
+    role: string
+    permissions: string[]
+  }
+}
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -72,10 +71,54 @@ const getStatusBadge = (status: string) => {
 }
 
 export default function DashboardPage() {
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        const data = await apiFetch("/dashboard")
+        setDashboardData(data)
+      } catch (err: any) {
+        setError(err.message || "Erro ao carregar dados do dashboard")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [])
+
   const handleLogout = () => {
     Cookies.remove("token")
     window.location.href = "/"
   }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Carregando dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!dashboardData) return null
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -111,7 +154,7 @@ export default function DashboardPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockStats.totalClients}</div>
+              <div className="text-2xl font-bold">{dashboardData.stats.totalClients}</div>
               <p className="text-xs text-muted-foreground">Clientes cadastrados</p>
             </CardContent>
           </Card>
@@ -122,7 +165,7 @@ export default function DashboardPage() {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockStats.activeOrders}</div>
+              <div className="text-2xl font-bold">{dashboardData.stats.activeOrders}</div>
               <p className="text-xs text-muted-foreground">Em andamento</p>
             </CardContent>
           </Card>
@@ -133,7 +176,7 @@ export default function DashboardPage() {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockStats.pendingOrders}</div>
+              <div className="text-2xl font-bold">{dashboardData.stats.pendingOrders}</div>
               <p className="text-xs text-muted-foreground">Aguardando início</p>
             </CardContent>
           </Card>
@@ -144,7 +187,7 @@ export default function DashboardPage() {
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockStats.completedToday}</div>
+              <div className="text-2xl font-bold">{dashboardData.stats.completedToday}</div>
               <p className="text-xs text-muted-foreground">Finalizados hoje</p>
             </CardContent>
           </Card>
@@ -238,7 +281,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockRecentOrders.map((order) => (
+              {dashboardData.recentOrders.map((order: RecentOrder) => (
                 <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center space-x-4">
@@ -251,7 +294,7 @@ export default function DashboardPage() {
                   <div className="flex items-center space-x-4">
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground">#{order.id}</p>
-                      <p className="text-sm text-muted-foreground">{order.date}</p>
+                      <p className="text-sm text-muted-foreground">{order.createdDate}</p>
                     </div>
                     {getStatusBadge(order.status)}
                   </div>
