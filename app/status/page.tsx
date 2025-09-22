@@ -20,9 +20,11 @@ interface StatusColumn {
 interface Order {
   id: string;
   clientName: string;
+  clientId: string;
   clientCpf: string;
   sneaker: string;
   serviceType: string;
+  servicos: string;
   description: string;
   price: number;
   status: string;
@@ -560,7 +562,7 @@ export default function StatusControlPage() {
                                 <strong>Tênis:</strong> {order.sneaker}
                               </p>
                               <p>
-                                <strong>Serviço:</strong> {order.serviceType}
+                                <strong>Serviço:</strong> {order.servicos}
                               </p>
                               <p>
                                 <strong>Valor:</strong> R$ {Number(order.price).toFixed(2)}
@@ -598,7 +600,10 @@ export default function StatusControlPage() {
                                 variant="outline"
                                 size="sm"
                                 className="flex-1 bg-transparent"
-                                onClick={() => setSelectedOrder(order)}
+                                onClick={() => { 
+                                  console.log("Visualizando detalhes do pedido", order);
+                                  setSelectedOrder(order) }
+                              }
                               >
                                 <Eye className="w-3 h-3 mr-1" />
                                 Ver
@@ -664,11 +669,11 @@ export default function StatusControlPage() {
           onClose={() => setSelectedOrder(null)}
           pedido={{
             ...selectedOrder,
-            clientId: selectedOrder.id, // Mapeamento temporário
+            clientId: selectedOrder.clientId, // Mapeamento temporário
             modeloTenis: selectedOrder.sneaker,
-            tipoServico: selectedOrder.serviceType,
+            servicos: selectedOrder.servicos,
             descricaoServicos: selectedOrder.description,
-            preco: selectedOrder.price,
+            price: selectedOrder.price,
             dataPrevistaEntrega: selectedOrder.expectedDate,
             dataCriacao: selectedOrder.createdDate,
             fotos: [], // Array vazio por padrão

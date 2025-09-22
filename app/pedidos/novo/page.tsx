@@ -235,6 +235,7 @@ export default function NewOrderPage() {
 
       await createPedidoService({
         clienteId: formData.clientId,
+        clientName: selectedClient?.nomeCompleto || "",
         modeloTenis: formData.sneaker,
         servicos: servicosInfo,
         fotos: fotosUrls,

@@ -95,6 +95,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
 // Cria um novo pedido
 export async function createPedidoService(pedido: {
   clienteId: string;
+  clientName: string;
   modeloTenis: string;
   servicos: Array<{
     id: string;
