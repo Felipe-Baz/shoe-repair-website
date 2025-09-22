@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, ArrowRight, CheckCircle, Clock, Play, Eye, Loader2 } from "lucide-react"
+import { ArrowLeft, ArrowRight, CheckCircle, Clock, Play, Eye, Loader2, FileText } from "lucide-react"
 import Link from "next/link"
 import { CardDetalhesPedido } from "@/components/CardDetalhesPedido"
-import { getStatusColumnsService, getOrdersStatusService, updateOrderStatusService } from "@/lib/apiService"
+import { getStatusColumnsService, getOrdersStatusService, updateOrderStatusService, generateOrderPDFService } from "@/lib/apiService"
 
 // Interface para as colunas de status
 interface StatusColumn {
@@ -186,7 +186,43 @@ export default function StatusControlPage() {
     }
   };
 
-  // Função para avançar pedido por número do pedido ou CPF do cliente
+  // Função para gerar PDF do pedido
+  const generateOrderPDF = async (order: Order) => {
+    try {
+      setSuccessMessage("Gerando PDF do pedido...");
+      
+      // Chama o service do backend para gerar o PDF
+      const pdfBlob = await generateOrderPDFService(order.id);
+      
+      // Cria URL para o blob e faz o download
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `pedido-${order.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setSuccessMessage(`PDF do pedido #${order.id} gerado com sucesso!`);
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (error: any) {
+      console.error("Erro ao gerar PDF:", error);
+      
+      // Mensagens de erro mais específicas
+      let errorMessage = "Erro ao gerar PDF do pedido";
+      if (error.message.includes("não encontrado")) {
+        errorMessage = "Pedido não encontrado";
+      } else if (error.message.includes("Token")) {
+        errorMessage = "Sessão expirada. Faça login novamente";
+      } else if (error.message.includes("permissão")) {
+        errorMessage = "Você não tem permissão para gerar PDF deste pedido";
+      }
+      
+      setSuccessMessage(errorMessage);
+      setTimeout(() => setSuccessMessage(""), 5000);
+    }
+  };  // Função para avançar pedido por número do pedido ou CPF do cliente
   const handleQuickAdvance = () => {
     const trimmed = inputValue.trim();
     if (!trimmed) return;
@@ -554,7 +590,17 @@ export default function StatusControlPage() {
                                 <h4 className="font-semibold">Pedido #{order.id}</h4>
                                 <p className="text-sm text-muted-foreground">{order.clientName}</p>
                               </div>
-                              <Badge className={statusInfo.color}>{columnName}</Badge>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="lg"
+                                  onClick={() => generateOrderPDF(order)}
+                                  className="bg-transparent p-1 h-12 w-12"
+                                  title="Gerar PDF do pedido"
+                                >
+                                  <FileText className="w-8 h-8" />
+                                </Button>
+                              </div>
                             </div>
 
                             <div className="text-sm space-y-1">

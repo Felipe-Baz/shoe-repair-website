@@ -295,3 +295,24 @@ export async function apiFetch(
   if (!response.ok) throw new Error("Erro na requisição")
   return response.json()
 }
+
+// Gera PDF de um pedido
+export async function generateOrderPDFService(pedidoId: string) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/pedidos/document/pdf`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify({ pedidoId }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao gerar PDF do pedido");
+  }
+
+  // Retorna o blob do PDF para download
+  return response.blob();
+}
