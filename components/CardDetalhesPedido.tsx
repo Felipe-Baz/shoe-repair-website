@@ -88,8 +88,8 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
   if (!pedido) return null;
   return (
     <Dialog open={open} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Detalhes do Pedido #{pedido.id}</DialogTitle>
           <DialogDescription>
             {loadingCliente ? (
@@ -109,7 +109,7 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
             )}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-2 py-2">
+        <div className="flex-1 overflow-y-auto space-y-2 py-2 pr-2">{/*Conteúdo com scroll*/}
           <div><strong>Tênis:</strong> {pedido.sneaker}</div>
           <div><strong>Serviço:</strong> {pedido.servicos}</div>
           <div><strong>Descrição:</strong> {pedido.description}</div>
@@ -149,7 +149,7 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
             </ul>
           </div>
         </div>
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-2 mt-4 flex-shrink-0 border-t pt-4">{/*Botões fixos na parte inferior*/}
           <Button
             variant="secondary"
             className="flex-1"
