@@ -1,16 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getClientesService, getOrdersStatusService } from "@/lib/apiService"
+import { getClientesService, getOrdersStatusService, generateOrderPDFService } from "@/lib/apiService"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, ArrowLeft, User, Package, Calendar, Filter } from "lucide-react"
+import { Search, ArrowLeft, User, Package, Calendar, Filter, FileText, CheckCircle } from "lucide-react"
 import Link from "next/link"
 
 
@@ -53,6 +54,45 @@ export default function ConsultasPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // Função para gerar PDF do pedido
+  const generateOrderPDF = async (order: any) => {
+    try {
+      setSuccessMessage("Gerando PDF do pedido...");
+      
+      // Chama o service do backend para gerar o PDF
+      const pdfBlob = await generateOrderPDFService(order.id);
+      
+      // Cria URL para o blob e faz o download
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `pedido-${order.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setSuccessMessage(`PDF do pedido #${order.id} gerado com sucesso!`);
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (error: any) {
+      console.error("Erro ao gerar PDF:", error);
+      
+      // Mensagens de erro mais específicas
+      let errorMessage = "Erro ao gerar PDF do pedido";
+      if (error.message.includes("não encontrado")) {
+        errorMessage = "Pedido não encontrado";
+      } else if (error.message.includes("Token")) {
+        errorMessage = "Sessão expirada. Faça login novamente";
+      } else if (error.message.includes("permissão")) {
+        errorMessage = "Você não tem permissão para gerar PDF deste pedido";
+      }
+      
+      setSuccessMessage(errorMessage);
+      setTimeout(() => setSuccessMessage(""), 5000);
+    }
+  };
   // Busca clientes e pedidos ao buscar
   const fetchData = async () => {
     setLoading(true);
@@ -258,6 +298,14 @@ export default function ConsultasPage() {
 
         {/* Results */}
         {hasSearched && (
+          <>
+            {/* Success Message */}
+            {successMessage && (
+              <Alert className="mb-6 border-green-200 bg-green-50">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">{successMessage}</AlertDescription>
+              </Alert>
+            )}
           <Tabs value={tab} onValueChange={setTab} className="space-y-4">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="clientes" className="flex items-center">
@@ -385,6 +433,14 @@ export default function ConsultasPage() {
                               <Button variant="outline" size="sm">
                                 Editar
                               </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => generateOrderPDF(order)}
+                                title="Gerar PDF do pedido"
+                              >
+                                <FileText className="w-4 h-4" />
+                              </Button>
                             </div>
                           </div>
                         </div>
@@ -400,6 +456,7 @@ export default function ConsultasPage() {
               </Card>
             </TabsContent>
           </Tabs>
+          </>
         )}
 
         {!hasSearched && (
