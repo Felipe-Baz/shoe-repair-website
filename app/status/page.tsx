@@ -457,58 +457,108 @@ export default function StatusControlPage() {
         </div>
       </div>
 
-      {/* Sessão de avanço rápido */}
-      <div className="w-full bg-muted/60 border-b py-4">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col items-center">
-          <div className="flex flex-col lg:flex-row items-center justify-center gap-4 w-full">
-            <label htmlFor="quick-advance" className="font-medium text-foreground">
-              Mover pedido rapidamente:
-            </label>
-            
-            <div className="flex flex-col md:flex-row gap-3 w-full lg:w-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Card de Atualização Rápida de Status */}
+        <Card className="mb-8 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+          <CardHeader className="text-center pb-4">
+            <CardTitle className="flex items-center justify-center gap-2 text-xl">
+              <ArrowRight className="w-6 h-6" />
+              Atualizar Status do Pedido
+            </CardTitle>
+            <CardDescription className="text-base">
+              Digite o número do pedido ou CPF do cliente para avançar o status rapidamente
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Passo 1 */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                1
+              </div>
+              <h3 className="font-medium text-lg">Digite o número do pedido ou CPF do cliente:</h3>
+              </div>
               <input
                 ref={inputRef}
                 id="quick-advance"
                 type="text"
-                placeholder="Digite o número do pedido ou CPF do cliente"
-                className="border rounded px-3 py-2 w-full md:w-[350px] transition-all"
+                placeholder="Ex: 123456 ou 12345678901"
+                className="w-full border-2 border-gray-400 bg-white rounded-lg px-4 py-3 text-lg transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                 value={inputValue}
                 onChange={e => setInputValue(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") handleQuickAdvance() }}
               />
-              
+              <p className="text-sm text-muted-foreground ml-8">
+              💡 Você pode digitar apenas os números, sem pontos ou traços
+              </p>
+            </div>
+
+            {/* Passo 2 */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                2
+              </div>
+              <h3 className="font-medium text-lg">Escolha para onde mover o pedido:</h3>
+              </div>
               <Select value={selectedSector} onValueChange={setSelectedSector}>
-                <SelectTrigger className="w-full md:w-[200px]">
-                  <SelectValue placeholder="Escolha o destino" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="next">Próximo Status</SelectItem>
-                  {getAvailableSectors().map((sector) => (
-                    <SelectItem key={sector.value} value={sector.value}>
-                      {sector.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <SelectTrigger className="w-full border-2 border-gray-300 rounded-lg px-4 py-4 text-lg h-auto bg-white hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/20">
+                <SelectValue placeholder="Escolha uma opção" />
+              </SelectTrigger>
+              <SelectContent className="border-2 border-gray-300 bg-white shadow-lg">
+                <SelectItem value="next" className="py-3 px-4 hover:bg-gray-50 focus:bg-gray-50">
+                <span className="font-medium text-gray-900">🔄 Próximo Status</span>
+                </SelectItem>
+                {getAvailableSectors().map((sector) => (
+                <SelectItem key={sector.value} value={sector.value} className="py-3 px-4 hover:bg-gray-50 focus:bg-gray-50">
+                  <span className="font-medium text-gray-900">
+                  {sector.value === "atendimento" && "📋"} 
+                  {sector.value === "lavagem" && "🧼"} 
+                  {sector.value === "pintura" && "🎨"} 
+                  {" "}{sector.label}
+                  </span>
+                </SelectItem>
+                ))}
+              </SelectContent>
               </Select>
-              
-              <Button onClick={handleQuickAdvance} className="w-full md:w-auto">
-                {selectedSector === "next" ? "Avançar" : "Mover para"} Pedido
-                <ArrowRight className="w-4 h-4 ml-2" />
+            </div>
+
+            {/* Passo 3 */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                3
+              </div>
+              <h3 className="font-medium text-lg">Clique para atualizar:</h3>
+              </div>
+              <Button 
+              onClick={handleQuickAdvance} 
+              className="w-full py-4 text-lg font-medium bg-primary hover:bg-primary/90"
+              size="lg"
+              >
+              ✅ {selectedSector === "next" ? "Avançar Status do Pedido" : "Mover Pedido para " + (getAvailableSectors().find(s => s.value === selectedSector)?.label || selectedSector)}
+              <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </div>
-          </div>
-          
-          {/* Explicação do funcionamento */}
-          <div className="mt-3 text-center">
-            <p className="text-sm text-muted-foreground">
-              {selectedSector === "next" ? (
-                "Avança o pedido para o próximo status sequencial"
-              ) : (
-                `Move o pedido para o setor de ${getAvailableSectors().find(s => s.value === selectedSector)?.label || selectedSector}. Se já estiver no setor, avança para o próximo status.`
-              )}
-            </p>
-          </div>
-        </div>
+
+            {/* Explicação do que acontecerá */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+              <div className="text-blue-600 mt-0.5">ℹ️</div>
+              <div>
+                <h4 className="font-medium text-blue-900 mb-1">O que vai acontecer:</h4>
+                <p className="text-blue-800 text-sm">
+                {selectedSector === "next" ? (
+                  "O pedido será movido automaticamente para o próximo status na sequência de trabalho."
+                ) : (
+                  `O pedido será movido para o setor de ${getAvailableSectors().find(s => s.value === selectedSector)?.label || selectedSector}. Se o pedido já estiver neste setor, ele avançará para o próximo passo dentro do mesmo setor.`
+                )}
+                </p>
+              </div>
+              </div>
+            </div>
+            </CardContent>
+        </Card>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
