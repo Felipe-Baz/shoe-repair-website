@@ -12,7 +12,6 @@ export interface PedidoDetalhes {
   clientPhone?: string; // Adicionado telefone do cliente (opcional)
   sneaker: string;
   servicos: string;
-  description: string;
   price: number;
   status: string;
   createdDate: string;
@@ -112,7 +111,6 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
         <div className="flex-1 overflow-y-auto space-y-2 py-2 pr-2">{/*Conteúdo com scroll*/}
           <div><strong>Tênis:</strong> {pedido.sneaker}</div>
           <div><strong>Serviço:</strong> {pedido.servicos}</div>
-          <div><strong>Descrição:</strong> {pedido.description}</div>
           <div><strong>Valor:</strong> R$ {pedido.price ? Number(pedido.price).toFixed(2) : '0,00'}</div>
           <div><strong>Status:</strong> {pedido.status}</div>
           <div><strong>Data de Criação:</strong> {pedido.createdDate}</div>

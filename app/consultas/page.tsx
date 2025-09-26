@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, ArrowLeft, User, Package, Calendar, Filter, FileText, CheckCircle } from "lucide-react"
 import Link from "next/link"
+import { CardDetalhesPedido, PedidoDetalhes } from "@/components/CardDetalhesPedido"
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -53,6 +54,43 @@ export default function ConsultasPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
+  
+  // Estados para o modal de detalhes do pedido
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<PedidoDetalhes | null>(null);
+
+  // Função para abrir modal com detalhes do pedido
+  const handleViewOrder = (order: any) => {
+    const pedidoDetalhes: PedidoDetalhes = {
+      id: order.id?.toString() || '',
+      clientId: order.clientId?.toString() || '',
+      clientName: order.clientName || `Cliente #${order.clienteId}`,
+      clientCpf: order.clientCpf || '',
+      clientPhone: order.clientPhone || '',
+      sneaker: order.modeloTenis || '',
+      servicos: order.servicos || '',
+      price: order.price || 0,
+      status: order.status || '',
+      createdDate: order.createdAt || order.dataCriacao || new Date().toLocaleDateString(),
+      expectedDate: order.dataPrevistaEntrega || '',
+      statusHistory: order.statusHistory || [
+        {
+          status: order.status || 'iniciado',
+          date: order.createdAt || order.dataCriacao || new Date().toLocaleDateString(),
+          time: new Date().toLocaleTimeString()
+        }
+      ]
+    };
+    
+    setSelectedOrder(pedidoDetalhes);
+    setModalOpen(true);
+  };
+
+  // Função para fechar o modal
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedOrder(null);
+  };
 
   // Função para gerar PDF do pedido
   const generateOrderPDF = async (order: any) => {
@@ -388,7 +426,7 @@ export default function ConsultasPage() {
                                 {getStatusBadge(order.status)}
                               </div>
                               <p className="text-sm text-muted-foreground mb-2">
-                                Cliente ID: {order.clienteId}
+                                Cliente ID: {order.clientId}
                               </p>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                 <div>
@@ -425,7 +463,11 @@ export default function ConsultasPage() {
                               )}
                             </div>
                             <div className="ml-4 space-x-2">
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleViewOrder(order)}
+                              >
                                 Ver
                               </Button>
                               <Button variant="outline" size="sm">
@@ -490,6 +532,13 @@ export default function ConsultasPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Modal de detalhes do pedido */}
+        <CardDetalhesPedido
+          open={modalOpen}
+          pedido={selectedOrder}
+          onClose={handleCloseModal}
+        />
       </div>
     </div>
   )
