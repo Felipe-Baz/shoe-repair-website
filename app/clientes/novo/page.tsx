@@ -76,9 +76,7 @@ export default function NewClientPage() {
       newErrors.name = "Nome é obrigatório"
     }
 
-    if (!formData.cpf.trim()) {
-      newErrors.cpf = "CPF é obrigatório"
-    } else if (!/^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(formData.cpf)) {
+    if (formData.cpf.trim() && !/^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(formData.cpf)) {
       newErrors.cpf = "CPF deve estar no formato 000.000.000-00"
     }
 
@@ -86,31 +84,12 @@ export default function NewClientPage() {
       newErrors.phone = "Telefone é obrigatório"
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email é obrigatório"
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Email deve ter um formato válido"
     }
 
-    if (!formData.cep.trim()) {
-      newErrors.cep = "CEP é obrigatório"
-    } else if (!/^\d{8}$/.test(formData.cep)) {
+    if (formData.cep.trim() && !/^\d{8}$/.test(formData.cep)) {
       newErrors.cep = "CEP deve ter 8 dígitos"
-    }
-    if (!formData.logradouro.trim()) {
-      newErrors.logradouro = "Logradouro é obrigatório"
-    }
-    if (!formData.numero.trim()) {
-      newErrors.numero = "Número é obrigatório"
-    }
-    if (!formData.bairro.trim()) {
-      newErrors.bairro = "Bairro é obrigatório"
-    }
-    if (!formData.cidade.trim()) {
-      newErrors.cidade = "Cidade é obrigatória"
-    }
-    if (!formData.estado.trim()) {
-      newErrors.estado = "Estado é obrigatório"
     }
 
     setErrors(newErrors)
@@ -221,7 +200,7 @@ export default function NewClientPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="cpf">CPF *</Label>
+                  <Label htmlFor="cpf">CPF</Label>
                   <Input
                     id="cpf"
                     name="cpf"
@@ -251,7 +230,7 @@ export default function NewClientPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     name="email"
@@ -267,7 +246,7 @@ export default function NewClientPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="cep">CEP *</Label>
+                  <Label htmlFor="cep">CEP</Label>
                   <Input
                     id="cep"
                     name="cep"
@@ -280,7 +259,7 @@ export default function NewClientPage() {
                   {errors.cep && <p className="text-sm text-destructive">{errors.cep}</p>}
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="logradouro">Logradouro *</Label>
+                  <Label htmlFor="logradouro">Logradouro</Label>
                   <Input
                     id="logradouro"
                     name="logradouro"
@@ -292,7 +271,7 @@ export default function NewClientPage() {
                   {errors.logradouro && <p className="text-sm text-destructive">{errors.logradouro}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="numero">Número *</Label>
+                  <Label htmlFor="numero">Número</Label>
                   <Input
                     id="numero"
                     name="numero"
@@ -306,7 +285,7 @@ export default function NewClientPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="bairro">Bairro *</Label>
+                  <Label htmlFor="bairro">Bairro</Label>
                   <Input
                     id="bairro"
                     name="bairro"
@@ -318,7 +297,7 @@ export default function NewClientPage() {
                   {errors.bairro && <p className="text-sm text-destructive">{errors.bairro}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="cidade">Cidade *</Label>
+                  <Label htmlFor="cidade">Cidade</Label>
                   <Input
                     id="cidade"
                     name="cidade"
@@ -330,7 +309,7 @@ export default function NewClientPage() {
                   {errors.cidade && <p className="text-sm text-destructive">{errors.cidade}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="estado">Estado *</Label>
+                  <Label htmlFor="estado">Estado</Label>
                   <Input
                     id="estado"
                     name="estado"
@@ -352,45 +331,6 @@ export default function NewClientPage() {
                   onChange={handleInputChange}
                   placeholder="Apto, bloco, etc. (opcional)"
                 />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="bairro">Bairro *</Label>
-                  <Input
-                    id="bairro"
-                    name="bairro"
-                    value={formData.bairro}
-                    onChange={handleInputChange}
-                    placeholder="Bairro"
-                    className={errors.bairro ? "border-destructive" : ""}
-                  />
-                  {errors.bairro && <p className="text-sm text-destructive">{errors.bairro}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cidade">Cidade *</Label>
-                  <Input
-                    id="cidade"
-                    name="cidade"
-                    value={formData.cidade}
-                    onChange={handleInputChange}
-                    placeholder="Cidade"
-                    className={errors.cidade ? "border-destructive" : ""}
-                  />
-                  {errors.cidade && <p className="text-sm text-destructive">{errors.cidade}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="estado">Estado *</Label>
-                  <Input
-                    id="estado"
-                    name="estado"
-                    value={formData.estado}
-                    onChange={handleInputChange}
-                    placeholder="UF"
-                    maxLength={2}
-                    className={errors.estado ? "border-destructive" : ""}
-                  />
-                  {errors.estado && <p className="text-sm text-destructive">{errors.estado}</p>}
-                </div>
               </div>
 
               <div className="space-y-2">

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getClientesService, getOrdersStatusService, generateOrderPDFService } from "@/lib/apiService"
+import { getClientesService, getOrdersStatusService, generateOrderPDFService, updateOrderService } from "@/lib/apiService"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,7 +11,9 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, ArrowLeft, User, Package, Calendar, Filter, FileText, CheckCircle } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Search, ArrowLeft, User, Package, Calendar, Filter, FileText, CheckCircle, Edit } from "lucide-react"
 import Link from "next/link"
 import { CardDetalhesPedido, PedidoDetalhes } from "@/components/CardDetalhesPedido"
 
@@ -58,6 +60,19 @@ export default function ConsultasPage() {
   // Estados para o modal de detalhes do pedido
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<PedidoDetalhes | null>(null);
+  
+  // Estados para o modal de edição do pedido
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<any>(null);
+  const [editForm, setEditForm] = useState({
+    modeloTenis: '',
+    servicos: '',
+    descricaoServicos: '',
+    price: 0,
+    dataPrevistaEntrega: '',
+    precoTotal: 0
+  });
+  const [editLoading, setEditLoading] = useState(false);
 
   // Função para abrir modal com detalhes do pedido
   const handleViewOrder = (order: any) => {
@@ -90,6 +105,85 @@ export default function ConsultasPage() {
   const handleCloseModal = () => {
     setModalOpen(false);
     setSelectedOrder(null);
+  };
+
+  // Funções para edição do pedido
+  const handleEditOrder = (order: any) => {
+    setEditingOrder(order);
+    setEditForm({
+      modeloTenis: order.modeloTenis || '',
+      servicos: order.servicos || '',
+      descricaoServicos: order.descricaoServicos || '',
+      price: order.price || 0,
+      dataPrevistaEntrega: order.dataPrevistaEntrega || '',
+      precoTotal: order.price || 0
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditModalOpen(false);
+    setEditingOrder(null);
+    setEditForm({
+      modeloTenis: '',
+      servicos: '',
+      descricaoServicos: '',
+      price: 0,
+      dataPrevistaEntrega: '',
+      precoTotal: 0
+    });
+  };
+
+  const handleSaveOrder = async () => {
+    if (!editingOrder) return;
+    
+    // Validação básica
+    if (!editForm.modeloTenis.trim()) {
+      setSuccessMessage("O modelo do tênis é obrigatório");
+      setTimeout(() => setSuccessMessage(""), 3000);
+      return;
+    }
+    
+    if (!editForm.servicos.trim()) {
+      setSuccessMessage("Os serviços são obrigatórios");
+      setTimeout(() => setSuccessMessage(""), 3000);
+      return;
+    }
+    
+    if (editForm.price <= 0) {
+      setSuccessMessage("O valor deve ser maior que zero");
+      setTimeout(() => setSuccessMessage(""), 3000);
+      return;
+    }
+    
+    setEditLoading(true);
+    try {
+
+      editForm.precoTotal = Number(editForm.price);
+      // Chama a API para atualizar o pedido
+      const updatedOrder = await updateOrderService(editingOrder.id, editForm);
+      
+      setSuccessMessage(`Pedido #${editingOrder.id} atualizado com sucesso!`);
+      setTimeout(() => setSuccessMessage(""), 3000);
+      
+      // Fechar modal e recarregar dados
+      handleCloseEditModal();
+      fetchData();
+    } catch (error: any) {
+      console.error("Erro ao atualizar pedido:", error);
+      let errorMessage = "Erro ao atualizar pedido";
+      if (error.message.includes("não encontrado")) {
+        errorMessage = "Pedido não encontrado";
+      } else if (error.message.includes("Token")) {
+        errorMessage = "Sessão expirada. Faça login novamente";
+      } else if (error.message.includes("permissão")) {
+        errorMessage = "Você não tem permissão para editar este pedido";
+      }
+      setSuccessMessage(errorMessage);
+      setTimeout(() => setSuccessMessage(""), 5000);
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   // Função para gerar PDF do pedido
@@ -470,7 +564,11 @@ export default function ConsultasPage() {
                               >
                                 Ver
                               </Button>
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleEditOrder(order)}
+                              >
                                 Editar
                               </Button>
                               <Button
@@ -539,6 +637,85 @@ export default function ConsultasPage() {
           pedido={selectedOrder}
           onClose={handleCloseModal}
         />
+
+        {/* Modal de edição do pedido */}
+        <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Edit className="w-5 h-5" />
+                Editar Pedido {editingOrder && `#${editingOrder.id}`}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="modeloTenis">Modelo do Tênis</Label>
+                  <Input
+                    id="modeloTenis"
+                    value={editForm.modeloTenis}
+                    onChange={(e) => setEditForm({ ...editForm, modeloTenis: e.target.value })}
+                    placeholder="Digite o modelo do tênis"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="servicos">Serviços</Label>
+                  <Input
+                    id="servicos"
+                    value={editForm.servicos}
+                    onChange={(e) => setEditForm({ ...editForm, servicos: e.target.value })}
+                    placeholder="Digite os serviços"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="descricaoServicos">Descrição dos Serviços</Label>
+                <Textarea
+                  id="descricaoServicos"
+                  value={editForm.descricaoServicos}
+                  onChange={(e) => setEditForm({ ...editForm, descricaoServicos: e.target.value })}
+                  placeholder="Descreva os serviços detalhadamente"
+                  rows={3}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="price">Valor (R$)</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editForm.price}
+                    onChange={(e) => setEditForm({ ...editForm, price: parseFloat(e.target.value) || 0 })}
+                    placeholder="0,00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dataPrevistaEntrega">Data Prevista</Label>
+                  <Input
+                    id="dataPrevistaEntrega"
+                    type="date"
+                    value={editForm.dataPrevistaEntrega}
+                    onChange={(e) => setEditForm({ ...editForm, dataPrevistaEntrega: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseEditModal} disabled={editLoading}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveOrder} disabled={editLoading}>
+                {editLoading ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

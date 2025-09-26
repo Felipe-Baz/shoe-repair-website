@@ -261,6 +261,34 @@ export async function updateOrderStatusService(orderId: string, newStatus: strin
   return result.data; // Retorna o pedido atualizado
 }
 
+// Atualiza os dados completos de um pedido
+export async function updateOrderService(orderId: string, orderData: {
+  modeloTenis?: string;
+  servicos?: string;
+  descricaoServicos?: string;
+  price?: number;
+  status?: string;
+  dataPrevistaEntrega?: string;
+}) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/pedidos/${orderId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify(orderData),
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao atualizar pedido");
+  }
+  
+  const result = await response.json();
+  return result.data; // Retorna o pedido atualizado
+}
+
 export async function getDashboardService() {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_BASE_URL}/dashboard`, {
