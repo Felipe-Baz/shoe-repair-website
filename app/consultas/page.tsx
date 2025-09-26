@@ -14,8 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, ArrowLeft, User, Package, Calendar, Filter, FileText, CheckCircle } from "lucide-react"
 import Link from "next/link"
 
-
-
 const getStatusBadge = (status: string) => {
   switch (status) {
     case "iniciado":
@@ -399,11 +397,11 @@ export default function ConsultasPage() {
                                 </div>
                                 <div>
                                   <p className="font-medium text-muted-foreground">Serviço</p>
-                                  <p>{order.tipoServico}</p>
+                                  <p>{order.servicos}</p>
                                 </div>
                                 <div>
                                   <p className="font-medium text-muted-foreground">Valor</p>
-                                  <p className="font-semibold text-green-600">R$ {order.preco?.toFixed(2)}</p>
+                                  <p className="font-semibold text-green-600">R$ {order.price?.toFixed(2)}</p>
                                 </div>
                                 <div>
                                   <p className="font-medium text-muted-foreground">Previsão</p>
