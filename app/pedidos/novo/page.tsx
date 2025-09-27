@@ -27,6 +27,18 @@ const availableServices = [
   { id: "costura", name: "Costura", suggestedPrice: 35 },
 ];
 
+// Acessórios disponíveis (vindos do env ou padrão)
+const defaultAccessories = [
+  "Cadarços originais",
+  "Palmilhas",
+  "Sola extra",
+  "Etiquetas de marca",
+  "Caixa original",
+  "Sacola de proteção",
+  "Manual de cuidados",
+  "Certificado de garantia"
+];
+
 interface StatusColumn {
   [columnName: string]: any[];
 }
@@ -65,6 +77,8 @@ export default function NewOrderPage() {
   const [signalValue, setSignalValue] = useState(0)
   const [hasWarranty, setHasWarranty] = useState(false)
   const [warrantyPrice, setWarrantyPrice] = useState(20) // Preço padrão da garantia
+  const [selectedAccessories, setSelectedAccessories] = useState<string[]>([])
+  const [customAccessory, setCustomAccessory] = useState("")
   const [clientSearch, setClientSearch] = useState("")
   const [clients, setClients] = useState<any[]>([]);
   const [statusColumns, setStatusColumns] = useState<StatusColumn>({});
@@ -232,6 +246,28 @@ export default function NewOrderPage() {
     }
   };
 
+  // Função para toggle de acessório
+  const toggleAccessory = (accessory: string, checked: boolean) => {
+    if (checked) {
+      setSelectedAccessories(prev => [...prev, accessory]);
+    } else {
+      setSelectedAccessories(prev => prev.filter(acc => acc !== accessory));
+    }
+  };
+
+  // Função para adicionar acessório customizado
+  const addCustomAccessory = () => {
+    if (customAccessory.trim() && !selectedAccessories.includes(customAccessory.trim())) {
+      setSelectedAccessories(prev => [...prev, customAccessory.trim()]);
+      setCustomAccessory("");
+    }
+  };
+
+  // Função para remover acessório
+  const removeAccessory = (accessory: string) => {
+    setSelectedAccessories(prev => prev.filter(acc => acc !== accessory));
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
@@ -315,9 +351,10 @@ export default function NewOrderPage() {
         descricao: service.description
       }));
 
-      // Adicionar informações de sinal e garantia nas observações
+      // Adicionar informações de sinal, garantia e acessórios nas observações
       const garantiaInfo = hasWarranty ? `\n\nGARANTIA: 3 meses (R$ ${warrantyPrice.toFixed(2)})` : '';
-      const observacoesCompletas = `${formData.observations}${garantiaInfo}\n\nSINAL: R$ ${signalValue.toFixed(2)} | RESTANTE: R$ ${Math.max(0, totalPrice - signalValue).toFixed(2)}${signalValue >= totalPrice ? ' (PAGO INTEGRALMENTE)' : ''}`;
+      const acessoriosInfo = selectedAccessories.length > 0 ? `\n\nACESSÓRIOS: ${selectedAccessories.join(', ')}` : '';
+      const observacoesCompletas = `${formData.observations}${garantiaInfo}${acessoriosInfo}\n\nSINAL: R$ ${signalValue.toFixed(2)} | RESTANTE: R$ ${Math.max(0, totalPrice - signalValue).toFixed(2)}${signalValue >= totalPrice ? ' (PAGO INTEGRALMENTE)' : ''}`;
 
       await createPedidoService({
         clienteId: formData.clientId,
@@ -686,6 +723,89 @@ export default function NewOrderPage() {
                 )}
                 {errors.services && <p className="text-sm text-destructive">{errors.services}</p>}
                 {errors.signal && <p className="text-sm text-destructive">{errors.signal}</p>}
+              </div>
+
+              {/* Acessórios */}
+              <div className="space-y-4">
+                <Label>Acessórios</Label>
+                
+                {/* Lista de Acessórios Padrão */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {defaultAccessories.map((accessory) => {
+                    const isSelected = selectedAccessories.includes(accessory);
+                    return (
+                      <div key={accessory} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
+                        <input
+                          type="checkbox"
+                          id={accessory}
+                          checked={isSelected}
+                          onChange={(e) => toggleAccessory(accessory, e.target.checked)}
+                          className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                        />
+                        <label htmlFor={accessory} className="flex-1 cursor-pointer text-sm">
+                          {accessory}
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Acessório Customizado */}
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <div className="space-y-3">
+                    <Label className="font-medium">Adicionar Acessório Personalizado</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Ex: Fivela especial, Solado antiderrapante..."
+                        value={customAccessory}
+                        onChange={(e) => setCustomAccessory(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addCustomAccessory();
+                          }
+                        }}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        onClick={addCustomAccessory}
+                        disabled={!customAccessory.trim()}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Adicionar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Acessórios Selecionados */}
+                {selectedAccessories.length > 0 && (
+                  <div className="space-y-3">
+                    <Label className="font-medium text-lg">Acessórios Selecionados:</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedAccessories.map((accessory, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                        >
+                          <span>{accessory}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeAccessory(accessory)}
+                            className="h-4 w-4 p-0 hover:bg-blue-200"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Photo Upload */}

@@ -26,6 +26,7 @@ interface Order {
   serviceType: string;
   servicos: string;
   description: string;
+  observacoes: string;
   price: number;
   status: string;
   createdDate: string;
@@ -773,7 +774,7 @@ export default function StatusControlPage() {
             dataPrevistaEntrega: selectedOrder.expectedDate,
             dataCriacao: selectedOrder.createdDate,
             fotos: [], // Array vazio por padrão
-            observacoes: "", // String vazia por padrão
+            observacoes: selectedOrder.observacoes || "", // String vazia por padrão
           }}
         />
       )}

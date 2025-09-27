@@ -116,6 +116,16 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
           <div><strong>Data de Criação:</strong> {pedido.createdDate}</div>
           <div><strong>Previsão:</strong> {pedido.expectedDate}</div>
           
+          {/* Observações do pedido */}
+          {pedido.observacoes && (
+            <div className="border-t pt-3 mt-4">
+              <div><strong>Observações do Pedido:</strong></div>
+              <div className="whitespace-pre-wrap text-sm mt-1 p-2 bg-gray-50 rounded border">
+                {pedido.observacoes}
+              </div>
+            </div>
+          )}
+          
           {/* Dados completos do cliente */}
           {cliente && (
             <div className="border-t pt-3 mt-4">
