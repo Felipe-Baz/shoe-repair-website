@@ -352,9 +352,9 @@ export default function NewOrderPage() {
       }));
 
       // Adicionar informações de sinal, garantia e acessórios nas observações
-      const garantiaInfo = hasWarranty ? `\n\nGARANTIA: 3 meses (R$ ${warrantyPrice.toFixed(2)})` : '';
+      const garantiaInfo = hasWarranty ? `GARANTIA: 3 meses (R$ ${warrantyPrice.toFixed(2)})` : '';
       const acessoriosInfo = selectedAccessories.length > 0 ? `\n\nACESSÓRIOS: ${selectedAccessories.join(', ')}` : '';
-      const observacoesCompletas = `${formData.observations}${garantiaInfo}${acessoriosInfo}\n\nSINAL: R$ ${signalValue.toFixed(2)} | RESTANTE: R$ ${Math.max(0, totalPrice - signalValue).toFixed(2)}${signalValue >= totalPrice ? ' (PAGO INTEGRALMENTE)' : ''}`;
+      const observacoesCompletas = `${formData.observations}${formData.observations ? '\n\n' : ''}${garantiaInfo}${acessoriosInfo}\n\nSINAL: R$ ${signalValue.toFixed(2)} | RESTANTE: R$ ${Math.max(0, totalPrice - signalValue).toFixed(2)}${signalValue >= totalPrice ? ' (PAGO INTEGRALMENTE)' : ''}`;
 
       await createPedidoService({
         clienteId: formData.clientId,
