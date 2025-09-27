@@ -60,6 +60,9 @@ export default function NewOrderPage() {
     observations: "",
   })
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([])
+  const [totalPrice, setTotalPrice] = useState(0)
+  const [signalType, setSignalType] = useState("50") // "50", "100", "custom"
+  const [signalValue, setSignalValue] = useState(0)
   const [clientSearch, setClientSearch] = useState("")
   const [clients, setClients] = useState<any[]>([]);
   const [statusColumns, setStatusColumns] = useState<StatusColumn>({});
@@ -127,32 +130,81 @@ export default function NewOrderPage() {
   }
 
   // Funções para gerenciar serviços selecionados
-  const addService = (serviceId: string) => {
-    const service = availableServices.find(s => s.id === serviceId);
-    if (service && !selectedServices.find(s => s.id === serviceId)) {
-      setSelectedServices(prev => [...prev, {
-        id: service.id,
-        name: service.name,
-        price: service.suggestedPrice,
-        description: ""
-      }]);
+  const toggleService = (serviceId: string, checked: boolean) => {
+    if (checked) {
+      const service = availableServices.find(s => s.id === serviceId);
+      if (service && !selectedServices.find(s => s.id === serviceId)) {
+        const newService = {
+          id: service.id,
+          name: service.name,
+          price: service.suggestedPrice,
+          description: ""
+        };
+        const newServices = [...selectedServices, newService];
+        setSelectedServices(newServices);
+        // Atualizar preço total automaticamente
+        const newTotal = newServices.reduce((total, s) => total + s.price, 0);
+        setTotalPrice(newTotal);
+        // Atualizar valor do sinal
+        updateSignalValue(newTotal);
+      }
+    } else {
+      const newServices = selectedServices.filter(s => s.id !== serviceId);
+      setSelectedServices(newServices);
+      // Atualizar preço total automaticamente
+      const newTotal = newServices.reduce((total, s) => total + s.price, 0);
+      setTotalPrice(newTotal);
+      // Atualizar valor do sinal
+      updateSignalValue(newTotal);
     }
   };
 
-  const removeService = (serviceId: string) => {
-    setSelectedServices(prev => prev.filter(s => s.id !== serviceId));
-  };
-
   const updateService = (serviceId: string, field: 'price' | 'description', value: string | number) => {
-    setSelectedServices(prev => prev.map(service =>
+    const newServices = selectedServices.map(service =>
       service.id === serviceId
         ? { ...service, [field]: value }
         : service
-    ));
+    );
+    setSelectedServices(newServices);
+    
+    // Atualizar preço total automaticamente se for alteração de preço
+    if (field === 'price') {
+      const newTotal = newServices.reduce((total, s) => total + s.price, 0);
+      setTotalPrice(newTotal);
+      // Atualizar valor do sinal
+      updateSignalValue(newTotal);
+    }
   };
 
   const getTotalPrice = () => {
-    return selectedServices.reduce((total, service) => total + service.price, 0);
+    return totalPrice;
+  };
+
+  // Função para atualizar valor do sinal baseado no tipo
+  const updateSignalValue = (total: number) => {
+    if (signalType === "50") {
+      setSignalValue(total * 0.5);
+    } else if (signalType === "100") {
+      setSignalValue(total);
+    }
+    // Para "custom", mantém o valor atual
+  };
+
+  // Handler para mudança de preço total
+  const handleTotalPriceChange = (newTotal: number) => {
+    setTotalPrice(newTotal);
+    updateSignalValue(newTotal);
+  };
+
+  // Handler para mudança de tipo de sinal
+  const handleSignalTypeChange = (type: string) => {
+    setSignalType(type);
+    if (type === "50") {
+      setSignalValue(totalPrice * 0.5);
+    } else if (type === "100") {
+      setSignalValue(totalPrice);
+    }
+    // Para "custom", mantém o valor atual
   };
 
   const validateForm = () => {
@@ -184,6 +236,11 @@ export default function NewOrderPage() {
 
     if (!formData.department) {
       newErrors.department = "Departamento é obrigatório"
+    }
+
+    // Validar valor de sinal
+    if (signalValue < 0 || signalValue > totalPrice) {
+      newErrors.signal = "Valor de sinal deve estar entre R$ 0,00 e o valor total"
     }
 
     setErrors(newErrors)
@@ -233,6 +290,9 @@ export default function NewOrderPage() {
         descricao: service.description
       }));
 
+      // Adicionar informações de sinal nas observações
+      const observacoesComSinal = `${formData.observations}${formData.observations ? '\n\n' : ''}SINAL: R$ ${signalValue.toFixed(2)} | RESTANTE: R$ ${Math.max(0, totalPrice - signalValue).toFixed(2)}${signalValue >= totalPrice ? ' (PAGO INTEGRALMENTE)' : ''}`;
+
       await createPedidoService({
         clienteId: formData.clientId,
         clientName: selectedClient?.nomeCompleto || "",
@@ -242,7 +302,7 @@ export default function NewOrderPage() {
         precoTotal: getTotalPrice(),
         dataPrevistaEntrega: formData.expectedDate,
         departamento: formData.department,
-        observacoes: formData.observations,
+        observacoes: observacoesComSinal,
         status: getFirstStatusForSector(formData.department) || undefined,
       });
       setSuccess(true);
@@ -376,39 +436,43 @@ export default function NewOrderPage() {
 
               {/* Seleção de Serviços */}
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <Label>Serviços *</Label>
-                  <Select
-                    onValueChange={(value) => addService(value)}
-                  >
-                    <SelectTrigger className="w-64">
-                      <SelectValue placeholder="Adicionar serviço" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableServices
-                        .filter(service => !selectedServices.find(s => s.id === service.id))
-                        .map((service) => (
-                          <SelectItem key={service.id} value={service.id}>
-                            {service.name} - R$ {service.suggestedPrice.toFixed(2)}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                <Label>Serviços *</Label>
+                
+                {/* Lista de Checkboxes para Serviços */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {availableServices.map((service) => {
+                    const isSelected = selectedServices.find(s => s.id === service.id);
+                    return (
+                      <div key={service.id} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
+                        <input
+                          type="checkbox"
+                          id={service.id}
+                          checked={!!isSelected}
+                          onChange={(e) => toggleService(service.id, e.target.checked)}
+                          className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                        />
+                        <label htmlFor={service.id} className="flex-1 cursor-pointer">
+                          <div className="font-medium">{service.name}</div>
+                          <div className="text-sm text-gray-500">R$ {service.suggestedPrice.toFixed(2)}</div>
+                        </label>
+                      </div>
+                    );
+                  })}
                 </div>
 
+                {/* Detalhes dos Serviços Selecionados */}
                 {selectedServices.length > 0 && (
                   <div className="space-y-3">
+                    <h4 className="font-medium text-lg">Detalhes dos Serviços Selecionados:</h4>
                     {selectedServices.map((service) => (
-                      <div key={service.id} className="border rounded-lg p-4 space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium">{service.name}</h4>
-                          </div>
+                      <div key={service.id} className="border rounded-lg p-4 space-y-3 bg-gray-50">
+                        <div className="flex justify-between items-center">
+                          <h5 className="font-medium">{service.name}</h5>
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => removeService(service.id)}
+                            onClick={() => toggleService(service.id, false)}
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -438,14 +502,114 @@ export default function NewOrderPage() {
                       </div>
                     ))}
 
-                    <div className="text-right">
-                      <p className="text-lg font-semibold">
-                        Total: R$ {getTotalPrice().toFixed(2)}
-                      </p>
+                    {/* Preço Total Editável */}
+                    <div className="border-t pt-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-2">
+                          <Label htmlFor="totalPrice">Preço Total (R$) *</Label>
+                          <Input
+                            id="totalPrice"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={totalPrice}
+                            onChange={(e) => handleTotalPriceChange(Number(e.target.value))}
+                            placeholder="0.00"
+                            className="w-32 text-lg font-semibold"
+                          />
+                        </div>
+                        <div className="text-right text-sm text-gray-600">
+                          <p>Soma dos serviços: R$ {selectedServices.reduce((total, service) => total + service.price, 0).toFixed(2)}</p>
+                          <p className="text-xs">(Você pode ajustar o valor total acima)</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Valor de Sinal */}
+                    <div className="border-t pt-4">
+                      <div className="space-y-4">
+                        <Label>Valor de Sinal</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* Opções de Porcentagem */}
+                          <div className="space-y-3">
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id="signal50"
+                                name="signalType"
+                                value="50"
+                                checked={signalType === "50"}
+                                onChange={(e) => handleSignalTypeChange(e.target.value)}
+                                className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                              />
+                              <label htmlFor="signal50" className="text-sm font-medium cursor-pointer">
+                                50% do total
+                              </label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id="signal100"
+                                name="signalType"
+                                value="100"
+                                checked={signalType === "100"}
+                                onChange={(e) => handleSignalTypeChange(e.target.value)}
+                                className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                              />
+                              <label htmlFor="signal100" className="text-sm font-medium cursor-pointer">
+                                100% do total (à vista)
+                              </label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id="signalCustom"
+                                name="signalType"
+                                value="custom"
+                                checked={signalType === "custom"}
+                                onChange={(e) => handleSignalTypeChange(e.target.value)}
+                                className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                              />
+                              <label htmlFor="signalCustom" className="text-sm font-medium cursor-pointer">
+                                Valor personalizado
+                              </label>
+                            </div>
+                          </div>
+                          {/* Valor do Sinal */}
+                          <div className="space-y-2">
+                            <Label htmlFor="signalValue">Valor do Sinal (R$)</Label>
+                            <Input
+                              id="signalValue"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              max={totalPrice}
+                              value={signalValue}
+                              onChange={(e) => setSignalValue(Number(e.target.value))}
+                              placeholder="0.00"
+                              disabled={signalType !== "custom"}
+                              className={`text-lg font-semibold ${signalType !== "custom" ? "bg-gray-100" : ""}`}
+                            />
+                          </div>
+                          {/* Valor Restante */}
+                          <div className="space-y-2">
+                            <Label className="text-sm text-gray-600">Valor Restante</Label>
+                            <div className="p-3 bg-gray-50 rounded-lg text-center">
+                              <p className="text-lg font-semibold text-gray-700">
+                                R$ {Math.max(0, totalPrice - signalValue).toFixed(2)}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {signalValue >= totalPrice ? "Pago integralmente" : "A pagar na entrega"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
                 {errors.services && <p className="text-sm text-destructive">{errors.services}</p>}
+                {errors.signal && <p className="text-sm text-destructive">{errors.signal}</p>}
               </div>
 
               {/* Photo Upload */}
