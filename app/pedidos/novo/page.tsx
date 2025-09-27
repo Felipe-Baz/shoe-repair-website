@@ -63,6 +63,8 @@ export default function NewOrderPage() {
   const [totalPrice, setTotalPrice] = useState(0)
   const [signalType, setSignalType] = useState("50") // "50", "100", "custom"
   const [signalValue, setSignalValue] = useState(0)
+  const [hasWarranty, setHasWarranty] = useState(false)
+  const [warrantyPrice, setWarrantyPrice] = useState(20) // Preço padrão da garantia
   const [clientSearch, setClientSearch] = useState("")
   const [clients, setClients] = useState<any[]>([]);
   const [statusColumns, setStatusColumns] = useState<StatusColumn>({});
@@ -143,7 +145,8 @@ export default function NewOrderPage() {
         const newServices = [...selectedServices, newService];
         setSelectedServices(newServices);
         // Atualizar preço total automaticamente
-        const newTotal = newServices.reduce((total, s) => total + s.price, 0);
+        const servicesTotal = newServices.reduce((total, s) => total + s.price, 0);
+        const newTotal = servicesTotal + (hasWarranty ? warrantyPrice : 0);
         setTotalPrice(newTotal);
         // Atualizar valor do sinal
         updateSignalValue(newTotal);
@@ -152,7 +155,8 @@ export default function NewOrderPage() {
       const newServices = selectedServices.filter(s => s.id !== serviceId);
       setSelectedServices(newServices);
       // Atualizar preço total automaticamente
-      const newTotal = newServices.reduce((total, s) => total + s.price, 0);
+      const servicesTotal = newServices.reduce((total, s) => total + s.price, 0);
+      const newTotal = servicesTotal + (hasWarranty ? warrantyPrice : 0);
       setTotalPrice(newTotal);
       // Atualizar valor do sinal
       updateSignalValue(newTotal);
@@ -169,7 +173,8 @@ export default function NewOrderPage() {
     
     // Atualizar preço total automaticamente se for alteração de preço
     if (field === 'price') {
-      const newTotal = newServices.reduce((total, s) => total + s.price, 0);
+      const servicesTotal = newServices.reduce((total, s) => total + s.price, 0);
+      const newTotal = servicesTotal + (hasWarranty ? warrantyPrice : 0);
       setTotalPrice(newTotal);
       // Atualizar valor do sinal
       updateSignalValue(newTotal);
@@ -205,6 +210,26 @@ export default function NewOrderPage() {
       setSignalValue(totalPrice);
     }
     // Para "custom", mantém o valor atual
+  };
+
+  // Função para toggle da garantia
+  const toggleWarranty = (checked: boolean) => {
+    setHasWarranty(checked);
+    const servicesTotal = selectedServices.reduce((total, s) => total + s.price, 0);
+    const newTotal = servicesTotal + (checked ? warrantyPrice : 0);
+    setTotalPrice(newTotal);
+    updateSignalValue(newTotal);
+  };
+
+  // Função para atualizar preço da garantia
+  const handleWarrantyPriceChange = (newPrice: number) => {
+    setWarrantyPrice(newPrice);
+    if (hasWarranty) {
+      const servicesTotal = selectedServices.reduce((total, s) => total + s.price, 0);
+      const newTotal = servicesTotal + newPrice;
+      setTotalPrice(newTotal);
+      updateSignalValue(newTotal);
+    }
   };
 
   const validateForm = () => {
@@ -290,8 +315,9 @@ export default function NewOrderPage() {
         descricao: service.description
       }));
 
-      // Adicionar informações de sinal nas observações
-      const observacoesComSinal = `${formData.observations}${formData.observations ? '\n\n' : ''}SINAL: R$ ${signalValue.toFixed(2)} | RESTANTE: R$ ${Math.max(0, totalPrice - signalValue).toFixed(2)}${signalValue >= totalPrice ? ' (PAGO INTEGRALMENTE)' : ''}`;
+      // Adicionar informações de sinal e garantia nas observações
+      const garantiaInfo = hasWarranty ? `\n\nGARANTIA: 3 meses (R$ ${warrantyPrice.toFixed(2)})` : '';
+      const observacoesCompletas = `${formData.observations}${garantiaInfo}\n\nSINAL: R$ ${signalValue.toFixed(2)} | RESTANTE: R$ ${Math.max(0, totalPrice - signalValue).toFixed(2)}${signalValue >= totalPrice ? ' (PAGO INTEGRALMENTE)' : ''}`;
 
       await createPedidoService({
         clienteId: formData.clientId,
@@ -302,7 +328,7 @@ export default function NewOrderPage() {
         precoTotal: getTotalPrice(),
         dataPrevistaEntrega: formData.expectedDate,
         departamento: formData.department,
-        observacoes: observacoesComSinal,
+        observacoes: observacoesCompletas,
         status: getFirstStatusForSector(formData.department) || undefined,
       });
       setSuccess(true);
@@ -460,6 +486,54 @@ export default function NewOrderPage() {
                   })}
                 </div>
 
+                {/* Seção de Garantia */}
+                <div className="border rounded-lg p-4 bg-blue-50">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="warranty"
+                          checked={hasWarranty}
+                          onChange={(e) => toggleWarranty(e.target.checked)}
+                          className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                        />
+                        <label htmlFor="warranty" className="font-medium cursor-pointer">
+                          Adicionar Garantia de 3 meses
+                        </label>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Proteção adicional para o serviço
+                      </div>
+                    </div>
+                    {hasWarranty && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-blue-200">
+                        <div className="space-y-2">
+                          <Label htmlFor="warrantyPrice">Preço da Garantia (R$)</Label>
+                          <Input
+                            id="warrantyPrice"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={warrantyPrice}
+                            onChange={(e) => handleWarrantyPriceChange(Number(e.target.value))}
+                            placeholder="0.00"
+                            className="bg-white"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm text-gray-600">Cobertura</Label>
+                          <div className="p-2 bg-white rounded text-sm">
+                            <p>✓ Retrabalho gratuito por defeitos</p>
+                            <p>✓ Troca de peças com defeito</p>
+                            <p>✓ Suporte técnico especializado</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Detalhes dos Serviços Selecionados */}
                 {selectedServices.length > 0 && (
                   <div className="space-y-3">
@@ -520,6 +594,8 @@ export default function NewOrderPage() {
                         </div>
                         <div className="text-right text-sm text-gray-600">
                           <p>Soma dos serviços: R$ {selectedServices.reduce((total, service) => total + service.price, 0).toFixed(2)}</p>
+                          {hasWarranty && <p>Garantia (3 meses): R$ {warrantyPrice.toFixed(2)}</p>}
+                          <p className="font-semibold">Subtotal: R$ {(selectedServices.reduce((total, service) => total + service.price, 0) + (hasWarranty ? warrantyPrice : 0)).toFixed(2)}</p>
                           <p className="text-xs">(Você pode ajustar o valor total acima)</p>
                         </div>
                       </div>
