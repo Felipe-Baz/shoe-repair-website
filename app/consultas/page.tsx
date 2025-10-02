@@ -82,19 +82,35 @@ export default function ConsultasPage() {
       clientName: order.clientName || `Cliente #${order.clienteId}`,
       clientCpf: order.clientCpf || '',
       clientPhone: order.clientPhone || '',
-      sneaker: order.modeloTenis || '',
-      servicos: order.servicos || '',
-      price: order.price || 0,
+      sneaker: order.sneaker || order.modeloTenis || '',
+      servicos: order.servicos || order.tipoServico || '',
+      price: order.precoTotal || order.price || 0,
       status: order.status || '',
       createdDate: order.createdAt || order.dataCriacao || new Date().toLocaleDateString(),
-      expectedDate: order.dataPrevistaEntrega || '',
+      expectedDate: order.dataPrevistaEntrega || order.expectedDate || '',
       statusHistory: order.statusHistory || [
         {
           status: order.status || 'iniciado',
           date: order.createdAt || order.dataCriacao || new Date().toLocaleDateString(),
-          time: new Date().toLocaleTimeString()
+          time: new Date().toLocaleTimeString(),
+          userId: order.userId,
+          userName: order.userName
         }
-      ]
+      ],
+      // Novos campos da API
+      modeloTenis: order.modeloTenis || order.sneaker || '',
+      tipoServico: order.tipoServico || order.servicos || '',
+      descricaoServicos: order.descricaoServicos || order.description || '',
+      preco: order.preco || order.price || 0,
+      precoTotal: order.precoTotal || order.price || 0,
+      valorSinal: order.valorSinal || 0,
+      valorRestante: order.valorRestante || order.precoTotal || order.price || 0,
+      dataPrevistaEntrega: order.dataPrevistaEntrega || order.expectedDate || '',
+      dataCriacao: order.dataCriacao || order.createdAt || '',
+      fotos: order.fotos || [],
+      observacoes: order.observacoes || '',
+      garantia: order.garantia || { ativa: false, preco: 0, duracao: '' },
+      acessorios: order.acessorios || []
     };
     
     setSelectedOrder(pedidoDetalhes);
@@ -525,23 +541,50 @@ export default function ConsultasPage() {
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                 <div>
                                   <p className="font-medium text-muted-foreground">Tênis</p>
-                                  <p>{order.modeloTenis}</p>
+                                  <p>{order.sneaker || order.modeloTenis}</p>
                                 </div>
                                 <div>
                                   <p className="font-medium text-muted-foreground">Serviço</p>
-                                  <p>{order.servicos}</p>
+                                  <p>{order.servicos || order.tipoServico}</p>
                                 </div>
                                 <div>
-                                  <p className="font-medium text-muted-foreground">Valor</p>
-                                  <p className="font-semibold text-green-600">R$ {order.price?.toFixed(2)}</p>
+                                  <p className="font-medium text-muted-foreground">Valor Total</p>
+                                  <p className="font-semibold text-green-600">
+                                    R$ {(order.precoTotal || order.price || 0).toFixed(2)}
+                                  </p>
+                                  {order.valorSinal > 0 && (
+                                    <p className="text-xs text-green-600">
+                                      Sinal: R$ {order.valorSinal.toFixed(2)}
+                                    </p>
+                                  )}
                                 </div>
                                 <div>
                                   <p className="font-medium text-muted-foreground">Previsão</p>
-                                  <p>{order.dataPrevistaEntrega}</p>
+                                  <p>{order.dataPrevistaEntrega || order.expectedDate}</p>
                                 </div>
                               </div>
+                              
+                              {/* Informações adicionais */}
+                              <div className="mt-3 space-y-2">
+                                {order.garantia?.ativa && (
+                                  <div className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs mr-2">
+                                    <strong>Garantia:</strong> {order.garantia.duracao} (+R$ {order.garantia.preco.toFixed(2)})
+                                  </div>
+                                )}
+                                {order.acessorios?.length > 0 && (
+                                  <div className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs mr-2">
+                                    <strong>Acessórios:</strong> {order.acessorios.slice(0, 2).join(", ")}
+                                    {order.acessorios.length > 2 && ` +${order.acessorios.length - 2} mais`}
+                                  </div>
+                                )}
+                                {order.valorRestante > 0 && (
+                                  <div className="inline-block bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">
+                                    <strong>Restante:</strong> R$ {order.valorRestante.toFixed(2)}
+                                  </div>
+                                )}
+                              </div>
                               <p className="text-sm text-muted-foreground mt-2">
-                                <strong>Descrição:</strong> {order.descricaoServicos}
+                                <strong>Descrição:</strong> {order.descricaoServicos || order.description}
                               </p>
                               {order.fotos && order.fotos.length > 0 && (
                                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
