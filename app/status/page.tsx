@@ -35,7 +35,27 @@ interface Order {
     status: string;
     date: string;
     time: string;
+    userId?: string;
+    userName?: string;
   }>;
+  // Novos campos da API
+  modeloTenis: string;
+  tipoServico: string;
+  descricaoServicos: string;
+  preco: number;
+  precoTotal: number;
+  valorSinal: number;
+  valorRestante: number;
+  dataPrevistaEntrega: string;
+  dataCriacao: string;
+  fotos: string[];
+  garantia: {
+    ativa: boolean;
+    preco: number;
+    duracao: string;
+    data?: string;
+  };
+  acessorios: string[];
 }
 
 const getStatusInfo = (status: string) => {
@@ -656,17 +676,33 @@ export default function StatusControlPage() {
 
                             <div className="text-sm space-y-1">
                               <p>
-                                <strong>Tênis:</strong> {order.sneaker}
+                                <strong>Tênis:</strong> {order.sneaker || order.modeloTenis}
                               </p>
                               <p>
-                                <strong>Serviço:</strong> {order.servicos}
+                                <strong>Serviço:</strong> {order.servicos || order.tipoServico}
                               </p>
                               <p>
-                                <strong>Valor:</strong> R$ {Number(order.price).toFixed(2)}
+                                <strong>Valor Total:</strong> R$ {Number(order.precoTotal || order.price).toFixed(2)}
+                                {order.valorSinal > 0 && (
+                                  <span className="text-xs text-green-600 ml-1">
+                                    (Sinal: R$ {order.valorSinal.toFixed(2)})
+                                  </span>
+                                )}
                               </p>
                               <p>
-                                <strong>Previsão:</strong> {order.expectedDate}
+                                <strong>Previsão:</strong> {order.dataPrevistaEntrega || order.expectedDate}
                               </p>
+                              {order.garantia?.ativa && (
+                                <p className="text-xs text-blue-600">
+                                  <strong>Garantia:</strong> {order.garantia.duracao} (+R$ {order.garantia.preco.toFixed(2)})
+                                </p>
+                              )}
+                              {order.acessorios?.length > 0 && (
+                                <p className="text-xs text-gray-600">
+                                  <strong>Acessórios:</strong> {order.acessorios.slice(0, 2).join(", ")}
+                                  {order.acessorios.length > 2 && ` +${order.acessorios.length - 2} mais`}
+                                </p>
+                              )}
                             </div>
 
                             {/* Status History */}
@@ -675,6 +711,9 @@ export default function StatusControlPage() {
                               {order.statusHistory.map((history, index) => (
                                 <p key={index}>
                                   {getStatusInfo(history.status).label} - {history.date} às {history.time}
+                                  {history.userName && (
+                                    <span className="text-blue-600 ml-1">por {history.userName}</span>
+                                  )}
                                 </p>
                               ))}
                             </div>
@@ -766,15 +805,21 @@ export default function StatusControlPage() {
           onClose={() => setSelectedOrder(null)}
           pedido={{
             ...selectedOrder,
-            clientId: selectedOrder.clientId, // Mapeamento temporário
-            modeloTenis: selectedOrder.sneaker,
-            servicos: selectedOrder.servicos,
-            descricaoServicos: selectedOrder.description,
-            price: selectedOrder.price,
-            dataPrevistaEntrega: selectedOrder.expectedDate,
-            dataCriacao: selectedOrder.createdDate,
-            fotos: [], // Array vazio por padrão
-            observacoes: selectedOrder.observacoes || "", // String vazia por padrão
+            // Usar os novos campos da API ou fallback para compatibilidade
+            modeloTenis: selectedOrder.modeloTenis || selectedOrder.sneaker,
+            servicos: selectedOrder.servicos || selectedOrder.tipoServico,
+            descricaoServicos: selectedOrder.descricaoServicos || selectedOrder.description,
+            price: selectedOrder.precoTotal || selectedOrder.price,
+            dataPrevistaEntrega: selectedOrder.dataPrevistaEntrega || selectedOrder.expectedDate,
+            dataCriacao: selectedOrder.dataCriacao || selectedOrder.createdDate,
+            fotos: selectedOrder.fotos || [], // Usar fotos da API ou array vazio
+            observacoes: selectedOrder.observacoes || "", // Observações da API
+            // Novos campos disponíveis
+            precoTotal: selectedOrder.precoTotal || selectedOrder.price,
+            valorSinal: selectedOrder.valorSinal || 0,
+            valorRestante: selectedOrder.valorRestante || selectedOrder.precoTotal || selectedOrder.price,
+            garantia: selectedOrder.garantia || { ativa: false, preco: 0, duracao: "" },
+            acessorios: selectedOrder.acessorios || [],
           }}
         />
       )}

@@ -20,7 +20,28 @@ export interface PedidoDetalhes {
     status: string;
     date: string;
     time: string;
+    userId?: string;
+    userName?: string;
   }>;
+  // Novos campos da API
+  modeloTenis?: string;
+  tipoServico?: string;
+  descricaoServicos?: string;
+  preco?: number;
+  precoTotal?: number;
+  valorSinal?: number;
+  valorRestante?: number;
+  dataPrevistaEntrega?: string;
+  dataCriacao?: string;
+  fotos?: string[];
+  observacoes?: string;
+  garantia?: {
+    ativa: boolean;
+    preco: number;
+    duracao: string;
+    data?: string;
+  };
+  acessorios?: string[];
   [key: string]: any; // Para permitir campos extras
 }
 
@@ -109,12 +130,69 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
           </DialogDescription>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto space-y-2 py-2 pr-2">{/*Conteúdo com scroll*/}
-          <div><strong>Tênis:</strong> {pedido.sneaker}</div>
-          <div><strong>Serviço:</strong> {pedido.servicos}</div>
-          <div><strong>Valor:</strong> R$ {pedido.price ? Number(pedido.price).toFixed(2) : '0,00'}</div>
+          <div><strong>Tênis:</strong> {pedido.modeloTenis || pedido.sneaker}</div>
+          <div><strong>Serviço:</strong> {pedido.servicos || pedido.tipoServico}</div>
+          {pedido.descricaoServicos && (
+            <div><strong>Descrição:</strong> {pedido.descricaoServicos}</div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div><strong>Valor Total:</strong> R$ {(pedido.precoTotal || pedido.price || 0).toFixed(2)}</div>
+            {(pedido.valorSinal && pedido.valorSinal > 0) && (
+              <div className="text-green-600"><strong>Sinal Pago:</strong> R$ {pedido.valorSinal.toFixed(2)}</div>
+            )}
+          </div>
+          {(pedido.valorRestante && pedido.valorRestante > 0) && (
+            <div className="text-orange-600"><strong>Valor Restante:</strong> R$ {pedido.valorRestante.toFixed(2)}</div>
+          )}
           <div><strong>Status:</strong> {pedido.status}</div>
-          <div><strong>Data de Criação:</strong> {pedido.createdDate}</div>
-          <div><strong>Previsão:</strong> {pedido.expectedDate}</div>
+          <div><strong>Data de Criação:</strong> {pedido.dataCriacao || pedido.createdDate}</div>
+          <div><strong>Previsão de Entrega:</strong> {pedido.dataPrevistaEntrega || pedido.expectedDate}</div>
+          
+          {/* Garantia */}
+          {pedido.garantia?.ativa && (
+            <div className="border-t pt-3 mt-4 bg-blue-50 p-3 rounded">
+              <div className="font-semibold mb-2 text-blue-800">Garantia Contratada:</div>
+              <div className="text-sm space-y-1">
+                <div><strong>Duração:</strong> {pedido.garantia.duracao}</div>
+                <div><strong>Valor:</strong> R$ {pedido.garantia.preco.toFixed(2)}</div>
+                {pedido.garantia.data && (
+                  <div><strong>Válida até:</strong> {pedido.garantia.data}</div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Acessórios */}
+          {pedido.acessorios && pedido.acessorios.length > 0 && (
+            <div className="border-t pt-3 mt-4">
+              <div className="font-semibold mb-2">Acessórios Inclusos:</div>
+              <div className="flex flex-wrap gap-1">
+                {pedido.acessorios.map((acessorio, index) => (
+                  <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm">
+                    {acessorio}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Fotos */}
+          {pedido.fotos && pedido.fotos.length > 0 && (
+            <div className="border-t pt-3 mt-4">
+              <div className="font-semibold mb-2">Fotos do Tênis:</div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {pedido.fotos.map((foto, index) => (
+                  <img 
+                    key={index}
+                    src={foto} 
+                    alt={`Foto ${index + 1}`}
+                    className="w-full h-24 object-cover rounded border cursor-pointer hover:opacity-75"
+                    onClick={() => window.open(foto, '_blank')}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
           
           {/* Observações do pedido */}
           {pedido.observacoes && (

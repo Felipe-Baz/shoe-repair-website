@@ -105,9 +105,18 @@ export async function createPedidoService(pedido: {
   }>;
   fotos: string[];
   precoTotal: number;
+  valorSinal: number;
+  valorRestante: number;
   dataPrevistaEntrega: string;
   departamento: string;
   observacoes: string;
+  garantia: {
+    ativa: boolean;
+    preco: number;
+    duracao: string;
+    data: string;
+  };
+  acessorios: string[];
   status?: string;
 }) {
   const token = localStorage.getItem("token");

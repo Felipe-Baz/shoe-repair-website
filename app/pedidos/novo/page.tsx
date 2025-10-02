@@ -351,10 +351,19 @@ export default function NewOrderPage() {
         descricao: service.description
       }));
 
-      // Adicionar informações de sinal, garantia e acessórios nas observações
-      const garantiaInfo = hasWarranty ? `GARANTIA: 3 meses (R$ ${warrantyPrice.toFixed(2)})` : '';
-      const acessoriosInfo = selectedAccessories.length > 0 ? `\n\nACESSÓRIOS: ${selectedAccessories.join(', ')}` : '';
-      const observacoesCompletas = `${formData.observations}${formData.observations ? '\n\n' : ''}${garantiaInfo}${acessoriosInfo}\n\nSINAL: R$ ${signalValue.toFixed(2)} | RESTANTE: R$ ${Math.max(0, totalPrice - signalValue).toFixed(2)}${signalValue >= totalPrice ? ' (PAGO INTEGRALMENTE)' : ''}`;
+      // Preparar dados de garantia
+      const garantiaData = {
+        ativa: hasWarranty,
+        preco: hasWarranty ? warrantyPrice : 0,
+        duracao: hasWarranty ? "3 meses" : "",
+        data: hasWarranty ? new Date().toISOString().split('T')[0] : "",
+      };
+
+      // Calcular valores de sinal e restante
+      const valorRestante = Math.max(0, totalPrice - signalValue);
+
+      // Observações apenas com o texto inserido pelo usuário
+      const observacoesFinais = formData.observations || '';
 
       await createPedidoService({
         clienteId: formData.clientId,
@@ -363,9 +372,13 @@ export default function NewOrderPage() {
         servicos: servicosInfo,
         fotos: fotosUrls,
         precoTotal: getTotalPrice(),
+        valorSinal: signalValue,
+        valorRestante: valorRestante,
         dataPrevistaEntrega: formData.expectedDate,
         departamento: formData.department,
-        observacoes: observacoesCompletas,
+        observacoes: observacoesFinais,
+        garantia: garantiaData,
+        acessorios: selectedAccessories,
         status: getFirstStatusForSector(formData.department) || undefined,
       });
       setSuccess(true);
