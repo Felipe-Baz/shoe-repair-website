@@ -103,19 +103,89 @@ export default function NewOrderPage() {
     fetchdata();
   }, []);
 
-  // Fotos do tênis
-  const [photos, setPhotos] = useState<File[]>([])
+  // Fotos do tênis (armazenamos também a preview para poder revogar URLs e evitar leaks)
+  const MAX_PHOTOS = parseInt(process.env.NEXT_PUBLIC_MAX_PHOTOS || "5", 10) || 5;
+  const MAX_FILE_MB = 5; // limite por arquivo antes da compressão
+  type PhotoItem = { file: File; preview: string; uploadedUrl?: string };
+  const [photos, setPhotos] = useState<PhotoItem[]>([])
+
   // Manipuladores de upload/remover foto
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Faz resize/compress antes de adicionar ao estado para reduzir uso de memória
+  const MAX_DIMENSION = 1280; // px
+  const JPEG_QUALITY = 0.75;
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const filesArray = Array.from(e.target.files);
-    // Limita a 5 fotos e 5MB cada
-    const validFiles = filesArray.filter(f => f.size <= 5 * 1024 * 1024).slice(0, 5 - photos.length);
-    setPhotos(prev => [...prev, ...validFiles].slice(0, 5));
+
+    const slotsLeft = Math.max(0, MAX_PHOTOS - photos.length);
+    const toProcess = filesArray.slice(0, slotsLeft);
+
+    const processed: PhotoItem[] = [];
+
+    for (const f of toProcess) {
+      // skip huge files (even though we'll try to compress)
+      if (f.size > MAX_FILE_MB * 1024 * 1024 * 10) {
+        // very big file (safety) -> skip
+        continue;
+      }
+
+      try {
+        // try createImageBitmap for efficient decode
+        const bitmap = await createImageBitmap(f as Blob);
+        const maxSide = Math.max(bitmap.width, bitmap.height);
+        const scale = maxSide > MAX_DIMENSION ? MAX_DIMENSION / maxSide : 1;
+        const w = Math.round(bitmap.width * scale);
+        const h = Math.round(bitmap.height * scale);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          bitmap.close?.();
+          continue;
+        }
+        ctx.drawImage(bitmap, 0, 0, w, h);
+        bitmap.close?.();
+
+        const blob: Blob | null = await new Promise((resolve) =>
+          canvas.toBlob(resolve, "image/jpeg", JPEG_QUALITY)
+        );
+
+        if (!blob) continue;
+
+        const newFile = new File([blob], f.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
+        const preview = URL.createObjectURL(blob);
+        processed.push({ file: newFile, preview });
+      } catch (err) {
+        // fallback: use original file but still create preview URL
+        const preview = URL.createObjectURL(f);
+        processed.push({ file: f, preview });
+      }
+    }
+
+    if (processed.length === 0) {
+      // clear input so user can re-select same files if needed
+      e.currentTarget.value = "";
+      return;
+    }
+
+    setPhotos((prev) => {
+      const merged = [...prev, ...processed].slice(0, MAX_PHOTOS);
+      return merged;
+    });
+
+    // limpa input para permitir re-seleção do mesmo arquivo
+    e.currentTarget.value = "";
   };
 
   const removePhoto = (index: number) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index));
+    setPhotos((prev) => {
+      const item = prev[index];
+      if (item?.preview) URL.revokeObjectURL(item.preview);
+      return prev.filter((_, i) => i !== index);
+    });
   };
   const [isLoading, setIsLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -341,7 +411,7 @@ export default function NewOrderPage() {
     setSuccess(false);
 
     try {
-      const fotosUrls = photos.map((file) => URL.createObjectURL(file));
+  const fotosUrls = photos.map((p) => p.uploadedUrl || p.preview);
 
       // Agregar informações dos serviços
       const servicosInfo = selectedServices.map(service => ({
@@ -383,6 +453,8 @@ export default function NewOrderPage() {
       });
       setSuccess(true);
       setIsLoading(false);
+      // revoke previews to free memory
+      photos.forEach(p => { if (p.preview) URL.revokeObjectURL(p.preview); });
       setTimeout(() => {
         router.push("/dashboard");
       }, 1000);
@@ -829,6 +901,7 @@ export default function NewOrderPage() {
                     type="file"
                     multiple
                     accept="image/*"
+                    capture="environment"
                     onChange={handlePhotoUpload}
                     className="hidden"
                     id="photo-upload"
@@ -846,7 +919,7 @@ export default function NewOrderPage() {
                     {photos.map((photo, index) => (
                       <div key={index} className="relative">
                         <img
-                          src={URL.createObjectURL(photo) || "/placeholder.svg"}
+                          src={photo.preview || "/placeholder.svg"}
                           alt={`Foto ${index + 1}`}
                           className="w-full h-32 object-cover rounded-lg"
                         />
