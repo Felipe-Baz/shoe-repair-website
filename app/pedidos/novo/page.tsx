@@ -46,10 +46,11 @@ interface StatusColumn {
 // Departamentos disponíveis
 const departments = [
   { value: "atendimento", label: "Atendimento" },
-  { value: "lavagem", label: "Lavagem" },
-  { value: "pintura", label: "Pintura" },
+  { value: "sapataria", label: "Sapataria" },
   { value: "costura", label: "Costura" },
+  { value: "lavagem", label: "Lavagem" },
   { value: "acabamento", label: "Acabamento" },
+  { value: "pintura", label: "Pintura" },
 ];
 
 // Interface para serviços selecionados
@@ -76,7 +77,7 @@ export default function NewOrderPage() {
   const [signalType, setSignalType] = useState("50") // "50", "100", "custom"
   const [signalValue, setSignalValue] = useState(0)
   const [hasWarranty, setHasWarranty] = useState(false)
-  const [warrantyPrice, setWarrantyPrice] = useState(20) // Preço padrão da garantia
+  const [warrantyPrice, setWarrantyPrice] = useState(0) // Preço padrão da garantia
   const [selectedAccessories, setSelectedAccessories] = useState<string[]>([])
   const [customAccessory, setCustomAccessory] = useState("")
   const [clientSearch, setClientSearch] = useState("")
